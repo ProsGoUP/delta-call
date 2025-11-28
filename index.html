@@ -638,6 +638,7 @@
         let peerCall = null;
         let peerDataConnection = null;  // 🔥 For Phase Resonance data!
         let dataConnectionReady = false;  // 🔥 Flag to track if DataConnection is ready
+        let usingPeerJSStream = false;  // 🔥 Flag to track if using PeerJS video stream
         const PEERJS_CONFIG = {
             // Use public PeerJS cloud server - FREE and always accessible!
             host: '0.peerjs.com',
@@ -1780,8 +1781,7 @@
 
         
         // 🔥 Display FULL HD remote video - EVENT-DRIVEN!
-        // Flag to track if we're using PeerJS WebRTC stream (not Phase Resonance)
-        let usingPeerJSStream = false;
+        // NOTE: usingPeerJSStream is declared globally near line 641!
         
         let videoReconstructionStarted = false;
         
