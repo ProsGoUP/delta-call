@@ -1604,7 +1604,6 @@
             console.log('   - Video: 1280x720 FULL HD');
             console.log('   - Audio: Native rate');
             console.log('   - Change = Compute active');
-            console.log('   - Transport:', peerDataConnection ? 'PeerJS DataConnection' : 'WebSocket');
             
             // Create canvas for remote video - FULL HD!
             if (!remoteFrameCanvas) {
@@ -1617,20 +1616,10 @@
             // Initialize
             remoteFrameData = null;
             
-            // 🔥 Wait for transport to be ready!
-            const waitForTransport = () => {
-                const hasTransport = (peerDataConnection && peerDataConnection.open) || 
-                                     (webSocket && webSocket.readyState === WebSocket.OPEN);
-                if (hasTransport) {
-                    console.log('✅ Transport ready! Starting Phase Resonance...');
-                    startDeltaTransmission();
-                    startVideoReconstruction();
-                } else {
-                    console.log('⏳ Waiting for transport...');
-                    setTimeout(waitForTransport, 100);
-                }
-            };
-            waitForTransport();
+            // 🔥 Start immediately - we're called from on('open') so transport IS ready!
+            console.log('✅ Starting Phase Resonance NOW!');
+            startDeltaTransmission();
+            startVideoReconstruction();
         }
         
         // 🔥💀⚡ TEMPORAL RESONANCE @ 500Hz + CHANGE = COMPUTE ⚡💀🔥
