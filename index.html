@@ -866,7 +866,9 @@
             
             // 🔥 Listen for data connections (Phase Resonance!)
             peer.on('connection', (conn) => {
-                console.log('🔥 Phase Resonance data connection from:', conn.peer);
+                console.log('🔥🔥🔥 INCOMING DATA CONNECTION from:', conn.peer);
+                console.log('   conn.open:', conn.open);
+                console.log('   conn.reliable:', conn.reliable);
                 peerDataConnection = conn;
                 
                 conn.on('data', (data) => {
@@ -885,7 +887,8 @@
                 // 🔥 FIX: Check if already open OR wait for open event!
                 // In PeerJS, connection might already be open when received!
                 function startAnswererResonance() {
-                    console.log('✅ Phase Resonance channel ready! Starting Resonance Sync...');
+                    console.log('✅✅✅ ANSWERER: Phase Resonance channel ready!');
+                    console.log('   Setting dataConnectionReady = true');
                     dataConnectionReady = true;
                     // 🔥 Generate callId if not set yet (DataConnection can arrive before answer!)
                     if (!currentCallId) {
@@ -1081,14 +1084,21 @@
                 currentCallId = 'p2p-' + Date.now();
                 
                 // 🔥 Open DataConnection for Phase Resonance!
-                console.log('🔥 Opening Phase Resonance DataConnection...');
+                console.log('🔥🔥🔥 CALLER: Opening Phase Resonance DataConnection to:', peerId);
                 peerDataConnection = peer.connect(peerId, { reliable: true });
                 
+                console.log('   peerDataConnection created:', !!peerDataConnection);
+                
                 peerDataConnection.on('open', () => {
-                    console.log('✅ Phase Resonance channel OPEN!');
+                    console.log('✅✅✅ CALLER: Phase Resonance channel OPEN!');
+                    console.log('   Setting dataConnectionReady = true');
                     dataConnectionReady = true;  // 🔥 Mark as ready!
                     // 🔥 Start Phase Resonance transmission!
                     setupResonanceSync();
+                });
+                
+                peerDataConnection.on('error', (err) => {
+                    console.error('❌ DataConnection ERROR:', err);
                 });
                 
                 peerDataConnection.on('data', (data) => {
