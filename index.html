@@ -1754,6 +1754,12 @@
         let videoReconstructionStarted = false;
         
         function startVideoReconstruction() {
+            // 🔥 If using PeerJS stream, DON'T override it with canvas!
+            if (usingPeerJSStream) {
+                console.log('✅ Using PeerJS stream - skipping canvas reconstruction');
+                return;
+            }
+            
             if (videoReconstructionStarted) {
                 console.log('⚠️ Video reconstruction already running!');
                 return;
