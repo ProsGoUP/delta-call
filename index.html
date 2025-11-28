@@ -881,7 +881,11 @@
                 });
                 
                 conn.on('open', () => {
-                    console.log('✅ Phase Resonance channel open!');
+                    console.log('✅ Phase Resonance channel open! Starting Resonance Sync...');
+                    // 🔥 Start Phase Resonance for answerer!
+                    if (currentCallId) {
+                        setupResonanceSync();
+                    }
                 });
             });
             
@@ -968,6 +972,15 @@
                 currentCallId = 'p2p-' + Date.now();
                 
                 console.log('✅ Call answered! Waiting for remote stream...');
+                
+                // 🔥 Start Phase Resonance when DataConnection is ready!
+                // The caller opens the DataConnection, we just wait for it
+                if (peerDataConnection && peerDataConnection.open) {
+                    console.log('🔥 DataConnection already open, starting Resonance!');
+                    setupResonanceSync();
+                } else {
+                    console.log('⏳ Waiting for DataConnection from caller...');
+                }
                 
             } catch (err) {
                 console.error('❌ Media error:', err);
@@ -1057,6 +1070,29 @@
                 
                 peerCall = call;
                 currentCallId = 'p2p-' + Date.now();
+                
+                // 🔥 Open DataConnection for Phase Resonance!
+                console.log('🔥 Opening Phase Resonance DataConnection...');
+                peerDataConnection = peer.connect(peerId, { reliable: true });
+                
+                peerDataConnection.on('open', () => {
+                    console.log('✅ Phase Resonance channel OPEN!');
+                    // 🔥 Start Phase Resonance transmission!
+                    setupResonanceSync();
+                });
+                
+                peerDataConnection.on('data', (data) => {
+                    // Handle Phase Resonance data from peer!
+                    if (data.type === 'video_frame') {
+                        handleVideoFrame(data);
+                    } else if (data.type === 'audio') {
+                        handleAudioFrame(data);
+                    } else if (data.type === 'phase') {
+                        handlePhaseData(data);
+                    }
+                    packetsRx++;
+                    updateStats();
+                });
                 
             } catch (err) {
                 console.error('❌ Media error:', err);
@@ -1581,6 +1617,21 @@
         let audioContext = null;
         let audioProcessor = null;
         
+        // 🔥 Universal send function - works with WebSocket OR PeerJS DataConnection!
+        function sendResonanceData(data) {
+            // Try PeerJS DataConnection first (P2P mode)
+            if (peerDataConnection && peerDataConnection.open) {
+                peerDataConnection.send(data);
+                return true;
+            }
+            // Fallback to WebSocket (server mode)
+            if (webSocket && webSocket.readyState === WebSocket.OPEN) {
+                webSocket.send(JSON.stringify(data));
+                return true;
+            }
+            return false;
+        }
+        
         function startDeltaTransmission() {
             const video = document.getElementById('localVideo');
             const canvas = document.createElement('canvas');
@@ -1592,12 +1643,17 @@
             // 🎤 Setup Audio on SAME PHASE
             setupAudioTransmission();
             
+            console.log('🔥 Starting Delta Transmission - Phase Resonance @ 500Hz');
+            
             function phaseLoop() {
                 const now = Date.now();
                 phaseCounter++;
                 
-                if (!localStream || !currentCallId || 
-                    !webSocket || webSocket.readyState !== WebSocket.OPEN) {
+                // 🔥 Check if we have a valid transport (WebSocket OR PeerJS)
+                const hasTransport = (peerDataConnection && peerDataConnection.open) || 
+                                     (webSocket && webSocket.readyState === WebSocket.OPEN);
+                
+                if (!localStream || !currentCallId || !hasTransport) {
                     requestAnimationFrame(phaseLoop);
                     return;
                 }
@@ -1629,7 +1685,7 @@
                 if (hasChange) {
                     const frame = canvas.toDataURL('image/jpeg', 0.95);  // High quality!
                     
-                    webSocket.send(JSON.stringify({
+                    sendResonanceData({
                         type: 'video_frame',
                         call_id: currentCallId,
                         sender_id: myDeltaId,
@@ -1638,7 +1694,7 @@
                         freq: BASE_FREQUENCY,
                         change: changeRatio,
                         t: now
-                    }));
+                    });
                     
                     lastFrameData = currentFrame;
                 }
@@ -1669,7 +1725,10 @@
                 audioProcessor = audioContext.createScriptProcessor(4096, 1, 1);
                 
                 audioProcessor.onaudioprocess = (e) => {
-                    if (!currentCallId || !webSocket || webSocket.readyState !== WebSocket.OPEN) return;
+                    // 🔥 Check for valid transport (WebSocket OR PeerJS)
+                    const hasTransport = (peerDataConnection && peerDataConnection.open) || 
+                                         (webSocket && webSocket.readyState === WebSocket.OPEN);
+                    if (!currentCallId || !hasTransport) return;
                     
                     const inputData = e.inputBuffer.getChannelData(0);
                     
@@ -1687,7 +1746,8 @@
                             audioData[i] = Math.max(-32768, Math.min(32767, Math.round(inputData[i] * 32768)));
                         }
                         
-                        webSocket.send(JSON.stringify({
+                        // 🔥 Use universal send function!
+                        sendResonanceData({
                             type: 'audio',
                             call_id: currentCallId,
                             sender_id: myDeltaId,
@@ -1695,7 +1755,7 @@
                             rate: nativeSampleRate,
                             phase: phaseCounter,
                             t: Date.now()
-                        }));
+                        });
                     }
                 };
                 
@@ -1710,26 +1770,16 @@
 
         
         // 🔥 Display FULL HD remote video - EVENT-DRIVEN!
-        // Flag to track if we're using PeerJS stream
+        // Flag to track if we're using PeerJS WebRTC stream (not Phase Resonance)
         let usingPeerJSStream = false;
         
         function startVideoReconstruction() {
-            // 🔥 If PeerJS mode - DON'T use canvas reconstruction!
-            if (usingPeerJSStream) {
-                console.log('🔥 PeerJS mode - using WebRTC stream directly, no canvas needed!');
-                return;
-            }
+            console.log('🔥 Starting Phase Resonance Video Reconstruction...');
             
             const remoteVideo = document.getElementById('remoteVideo');
             let streamSet = false;
             
             function display() {
-                // 🔥 If PeerJS already set a real stream, stop this loop!
-                if (usingPeerJSStream) {
-                    console.log('🔥 PeerJS stream detected - stopping canvas reconstruction!');
-                    return;
-                }
-                
                 if (!remoteFrameData) {
                     remoteFrameCtx.fillStyle = '#0a0a0a';
                     remoteFrameCtx.fillRect(0, 0, 1280, 720);
@@ -1741,12 +1791,12 @@
                     remoteFrameCtx.putImageData(remoteFrameData, 0, 0);
                 }
                 
-                if (!streamSet && !remoteVideo.srcObject) {
+                if (!streamSet) {
                     // UNLIMITED FPS - event driven!
                     const stream = remoteFrameCanvas.captureStream(0);  // 0 = unlimited!
                     remoteVideo.srcObject = stream;
                     streamSet = true;
-                    console.log('🎬 FULL HD display ready - 1280x720 @ UNLIMITED FPS');
+                    console.log('🎬 Phase Resonance display ready - 1280x720 @ UNLIMITED FPS');
                 }
                 
                 requestAnimationFrame(display);
