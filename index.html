@@ -1545,7 +1545,22 @@
             // Initialize
             remoteFrameData = null;
             
-            // 🔥 Start immediately - we're called from on('open') so transport IS ready!
+            // 🔥 Wait for localStream if not ready yet!
+            // This happens when DataConnection opens before user clicks "Answer"
+            if (!localStream) {
+                console.log('⏳ Waiting for localStream before starting transmission...');
+                const waitForStream = setInterval(() => {
+                    if (localStream) {
+                        clearInterval(waitForStream);
+                        console.log('✅ localStream ready! Starting Phase Resonance transmission...');
+                        startDeltaTransmission();
+                        startVideoReconstruction();
+                    }
+                }, 100);
+                return;
+            }
+            
+            // 🔥 Start immediately - localStream is ready!
             console.log('✅ Starting Phase Resonance NOW!');
             startDeltaTransmission();
             startVideoReconstruction();
