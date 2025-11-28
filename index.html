@@ -973,14 +973,32 @@
                 
                 console.log('✅ Call answered! Waiting for remote stream...');
                 
-                // 🔥 Start Phase Resonance when DataConnection is ready!
-                // The caller opens the DataConnection, we just wait for it
-                if (peerDataConnection && peerDataConnection.open) {
-                    console.log('🔥 DataConnection already open, starting Resonance!');
+                // 🔥 Answerer also opens DataConnection for Phase Resonance!
+                console.log('🔥 Opening Phase Resonance DataConnection to caller...');
+                const callerPeerId = call.peer;
+                peerDataConnection = peer.connect(callerPeerId, { reliable: true });
+                
+                peerDataConnection.on('open', () => {
+                    console.log('✅ Phase Resonance channel OPEN (answerer)!');
                     setupResonanceSync();
-                } else {
-                    console.log('⏳ Waiting for DataConnection from caller...');
-                }
+                });
+                
+                peerDataConnection.on('data', (data) => {
+                    // Handle Phase Resonance data from caller!
+                    if (data.type === 'video_frame') {
+                        handleVideoFrame(data);
+                    } else if (data.type === 'audio') {
+                        handleAudioFrame(data);
+                    } else if (data.type === 'phase') {
+                        handlePhaseData(data);
+                    }
+                    packetsRx++;
+                    updateStats();
+                });
+                
+                peerDataConnection.on('error', (err) => {
+                    console.error('❌ DataConnection error:', err);
+                });
                 
             } catch (err) {
                 console.error('❌ Media error:', err);
