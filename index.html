@@ -1657,7 +1657,12 @@
                         clearInterval(waitForStream);
                         console.log('✅ localStream ready! Starting Phase Resonance transmission...');
                         startDeltaTransmission();
-                        startVideoReconstruction();
+                        // 🔥 Only start canvas reconstruction if NOT using PeerJS WebRTC stream!
+                        if (!usingPeerJSStream) {
+                            startVideoReconstruction();
+                        } else {
+                            console.log('✅ Using PeerJS WebRTC stream - skipping canvas reconstruction');
+                        }
                     }
                 }, 100);
                 return;
@@ -1666,7 +1671,12 @@
             // 🔥 Start immediately - localStream is ready!
             console.log('✅ Starting Phase Resonance NOW!');
             startDeltaTransmission();
-            startVideoReconstruction();
+            // 🔥 Only start canvas reconstruction if NOT using PeerJS WebRTC stream!
+            if (!usingPeerJSStream) {
+                startVideoReconstruction();
+            } else {
+                console.log('✅ Using PeerJS WebRTC stream - skipping canvas reconstruction');
+            }
         }
         
         // 🔥💀⚡ TEMPORAL RESONANCE @ 500Hz + CHANGE = COMPUTE ⚡💀🔥
