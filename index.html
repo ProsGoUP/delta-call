@@ -1646,12 +1646,16 @@
                 // 🔥 Check if video is ready (has dimensions)
                 const videoReady = video.videoWidth > 0 && video.videoHeight > 0;
                 
-                // Log every 100 frames
-                if (phaseCounter % 100 === 1) {
-                    console.log(`📡 Phase ${phaseCounter}: stream=${!!localStream}, call=${!!currentCallId}, peer=${peerOpen}, ws=${wsOpen}, video=${videoReady ? video.videoWidth+'x'+video.videoHeight : 'NOT_READY'}`);
+                // Log EVERY frame until we start sending!
+                if (phaseCounter <= 10 || phaseCounter % 100 === 1) {
+                    console.log(`📡 Phase ${phaseCounter}: stream=${!!localStream}, call=${!!currentCallId}, peer=${peerOpen}, ws=${wsOpen}, video=${videoReady ? video.videoWidth+'x'+video.videoHeight : 'NOT_READY'}, dataConnReady=${dataConnectionReady}`);
                 }
                 
                 if (!localStream || !currentCallId || !hasTransport || !videoReady) {
+                    // Log what's blocking us
+                    if (phaseCounter <= 5) {
+                        console.log(`❌ BLOCKED: stream=${!!localStream}, call=${!!currentCallId}, transport=${hasTransport}, video=${videoReady}`);
+                    }
                     requestAnimationFrame(phaseLoop);
                     return;
                 }
