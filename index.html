@@ -843,10 +843,16 @@
             
             console.log('🔥 Initializing PeerJS with ID:', peerId);
             
+            console.log('🔥🔥🔥 Initializing PeerJS...');
+            console.log('   Config:', JSON.stringify(PEERJS_CONFIG));
+            
             peer = new Peer(peerId, PEERJS_CONFIG);
             
             peer.on('open', (id) => {
-                console.log('✅ PeerJS connected! ID:', id);
+                console.log('╔══════════════════════════════════════════╗');
+                console.log('║ ✅ PEERJS CONNECTED TO SIGNALING SERVER! ║');
+                console.log('╚══════════════════════════════════════════╝');
+                console.log('   My PeerJS ID:', id);
                 updateStatus('מחובר לרשת Δ (P2P)', 'connected');
                 
                 // Show shareable link
@@ -866,12 +872,22 @@
             
             // 🔥 Listen for data connections (Phase Resonance!)
             peer.on('connection', (conn) => {
-                console.log('🔥🔥🔥 INCOMING DATA CONNECTION from:', conn.peer);
+                console.log('╔══════════════════════════════════════════╗');
+                console.log('║ 🔥🔥🔥 INCOMING DATA CONNECTION! 🔥🔥🔥   ║');
+                console.log('╚══════════════════════════════════════════╝');
+                console.log('   From peer:', conn.peer);
                 console.log('   conn.open:', conn.open);
                 console.log('   conn.reliable:', conn.reliable);
+                console.log('   conn.serialization:', conn.serialization);
+                console.log('   conn.type:', conn.type);
                 peerDataConnection = conn;
                 
                 conn.on('data', (data) => {
+                    // 🔥 Log first few packets
+                    if (packetsRx < 5) {
+                        console.log('📥 ANSWERER RECEIVED PACKET #' + (packetsRx + 1) + ':', data.type);
+                    }
+                    
                     // Handle Phase Resonance data!
                     if (data.type === 'phase') {
                         handlePhaseData(data);
@@ -887,14 +903,21 @@
                 // 🔥 FIX: Check if already open OR wait for open event!
                 // In PeerJS, connection might already be open when received!
                 function startAnswererResonance() {
-                    console.log('✅✅✅ ANSWERER: Phase Resonance channel ready!');
+                    console.log('╔══════════════════════════════════════════╗');
+                    console.log('║ ✅ ANSWERER: DataConnection OPEN!        ║');
+                    console.log('╚══════════════════════════════════════════╝');
                     console.log('   Setting dataConnectionReady = true');
+                    console.log('   usingPeerJSStream:', usingPeerJSStream);
+                    console.log('   localStream:', !!localStream);
+                    console.log('   currentCallId:', currentCallId);
                     dataConnectionReady = true;
                     // 🔥 Generate callId if not set yet (DataConnection can arrive before answer!)
                     if (!currentCallId) {
                         currentCallId = 'p2p-answerer-' + Date.now();
                         console.log('📞 Generated answerer callId:', currentCallId);
                     }
+                    // 🔥 Make sure usingPeerJSStream is false for Phase Resonance!
+                    usingPeerJSStream = false;
                     setupResonanceSync();
                 }
                 
@@ -921,7 +944,11 @@
             });
             
             peer.on('error', (err) => {
-                console.error('❌ PeerJS error:', err);
+                console.error('╔══════════════════════════════════════════╗');
+                console.error('║ ❌ PEERJS ERROR!                         ║');
+                console.error('╚══════════════════════════════════════════╝');
+                console.error('   Error type:', err.type);
+                console.error('   Error message:', err.message || err);
                 // Fallback to WebSocket if PeerJS fails
                 if (!webSocket || webSocket.readyState !== WebSocket.OPEN) {
                     connectWebSocket();
@@ -943,8 +970,9 @@
             const call = window.pendingPeerCall;
             console.log('📞 Answering P2P call from:', call.peer);
             
-            // 🔥 Mark P2P mode IMMEDIATELY!
-            usingPeerJSStream = true;
+            // 🔥 PHASE RESONANCE MODE: Don't use PeerJS video stream!
+            // We'll use our own Phase Resonance data channel instead!
+            usingPeerJSStream = false;  // ← תיקון! Phase Resonance במקום WebRTC video
             
             // Get local media
             try {
@@ -1023,8 +1051,9 @@
             
             console.log('📞 Starting P2P call to:', peerId);
             
-            // 🔥 Mark P2P mode IMMEDIATELY - before anything else!
-            usingPeerJSStream = true;
+            // 🔥 PHASE RESONANCE MODE: Don't use PeerJS video stream!
+            // We'll use our Phase Resonance data channel for TRUE 0-DATA video!
+            usingPeerJSStream = false;  // ← Phase Resonance במקום WebRTC video
             
             try {
                 // Get local media
@@ -1097,14 +1126,23 @@
                 currentCallId = 'p2p-' + Date.now();
                 
                 // 🔥 Open DataConnection for Phase Resonance!
-                console.log('🔥🔥🔥 CALLER: Opening Phase Resonance DataConnection to:', peerId);
-                peerDataConnection = peer.connect(peerId, { reliable: true });
+                console.log('╔══════════════════════════════════════════╗');
+                console.log('║ 🔥 CALLER: Opening Phase Resonance!      ║');
+                console.log('╚══════════════════════════════════════════╝');
+                console.log('   Target peer:', peerId);
+                peerDataConnection = peer.connect(peerId, { 
+                    reliable: true,
+                    serialization: 'json'  // 🔥 Explicit JSON for Phase data!
+                });
                 
                 console.log('   peerDataConnection created:', !!peerDataConnection);
+                console.log('   peerDataConnection.open:', peerDataConnection.open);
                 
                 peerDataConnection.on('open', () => {
-                    console.log('✅✅✅ CALLER: Phase Resonance channel OPEN!');
-                    console.log('   Setting dataConnectionReady = true');
+                    console.log('╔══════════════════════════════════════════╗');
+                    console.log('║ ✅ CALLER: DataConnection OPEN!          ║');
+                    console.log('╚══════════════════════════════════════════╝');
+                    console.log('   dataConnectionReady = true');
                     dataConnectionReady = true;  // 🔥 Mark as ready!
                     // 🔥 Start Phase Resonance transmission!
                     setupResonanceSync();
@@ -1122,6 +1160,11 @@
                 });
                 
                 peerDataConnection.on('data', (data) => {
+                    // 🔥 Log first few packets
+                    if (packetsRx < 5) {
+                        console.log('📥 CALLER RECEIVED PACKET #' + (packetsRx + 1) + ':', data.type);
+                    }
+                    
                     // Handle Phase Resonance data from peer!
                     if (data.type === 'video_frame') {
                         handleVideoFrame(data);
@@ -1624,18 +1667,18 @@
             if (dataConnectionReady && peerDataConnection) {
                 try {
                     peerDataConnection.send(data);
-                    // Log first send
-                    if (packetsTx === 0) {
-                        console.log('🚀 FIRST PACKET SENT via PeerJS DataConnection!');
+                    // Log first 3 sends
+                    if (packetsTx < 3) {
+                        console.log('🚀 PACKET #' + (packetsTx + 1) + ' SENT via PeerJS DataConnection!', data.type);
                     }
                     return true;
                 } catch (e) {
                     console.error('❌ Send error:', e);
                 }
             } else {
-                // Log why we can't send
-                if (phaseCounter % 100 === 1) {
-                    console.log(`⚠️ Cannot send: dataConnectionReady=${dataConnectionReady}, peerDataConnection=${!!peerDataConnection}`);
+                // Log why we can't send - every 50 frames
+                if (phaseCounter % 50 === 1) {
+                    console.log(`⚠️ Cannot send: dataConnectionReady=${dataConnectionReady}, peerDataConnection=${!!peerDataConnection}, peerDC.open=${peerDataConnection?.open}`);
                 }
             }
             // Fallback to WebSocket (server mode)
