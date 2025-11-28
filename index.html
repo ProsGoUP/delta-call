@@ -637,6 +637,7 @@
         let peer = null;
         let peerCall = null;
         let peerDataConnection = null;  // 🔥 For Phase Resonance data!
+        let dataConnectionReady = false;  // 🔥 Flag to track if DataConnection is ready
         const PEERJS_CONFIG = {
             // Use public PeerJS cloud server - FREE and always accessible!
             host: '0.peerjs.com',
@@ -1583,8 +1584,8 @@
         let audioProcessor = null;
         let deltaTransmissionStarted = false;  // 🔥 Prevent double-start!
         
-        // 🔥 Flag to track if DataConnection is ready
-        let dataConnectionReady = false;
+        // 🔥 NOTE: dataConnectionReady is declared globally near line 639!
+        // DO NOT redeclare it here - that would shadow the global variable!
         
         // 🔥 Universal send function - works with WebSocket OR PeerJS DataConnection!
         function sendResonanceData(data) {
