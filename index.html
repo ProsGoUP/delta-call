@@ -1808,30 +1808,53 @@
         // Flag to track if we're using PeerJS WebRTC stream (not Phase Resonance)
         let usingPeerJSStream = false;
         
+        let videoReconstructionStarted = false;
+        
         function startVideoReconstruction() {
+            if (videoReconstructionStarted) {
+                console.log('⚠️ Video reconstruction already running!');
+                return;
+            }
+            videoReconstructionStarted = true;
+            
             console.log('🔥 Starting Phase Resonance Video Reconstruction...');
+            
+            // 🔥 Make sure canvas exists!
+            if (!remoteFrameCanvas) {
+                remoteFrameCanvas = document.createElement('canvas');
+                remoteFrameCanvas.width = 1280;
+                remoteFrameCanvas.height = 720;
+                remoteFrameCtx = remoteFrameCanvas.getContext('2d');
+            }
             
             const remoteVideo = document.getElementById('remoteVideo');
             let streamSet = false;
+            let displayFrames = 0;
             
             function display() {
+                displayFrames++;
+                
                 if (!remoteFrameData) {
+                    // Show waiting message
                     remoteFrameCtx.fillStyle = '#0a0a0a';
                     remoteFrameCtx.fillRect(0, 0, 1280, 720);
                     remoteFrameCtx.fillStyle = '#00d4ff';
                     remoteFrameCtx.font = '32px Arial';
                     remoteFrameCtx.textAlign = 'center';
                     remoteFrameCtx.fillText('⏳ מסנכרן Phase @ 500Hz...', 640, 360);
+                    remoteFrameCtx.font = '18px Arial';
+                    remoteFrameCtx.fillText(`ממתין לנתונים... (${framesReceived} frames received)`, 640, 400);
                 } else {
+                    // Display the received frame!
                     remoteFrameCtx.putImageData(remoteFrameData, 0, 0);
                 }
                 
                 if (!streamSet) {
                     // UNLIMITED FPS - event driven!
-                    const stream = remoteFrameCanvas.captureStream(0);  // 0 = unlimited!
+                    const stream = remoteFrameCanvas.captureStream(30);  // 30fps for smooth display
                     remoteVideo.srcObject = stream;
                     streamSet = true;
-                    console.log('🎬 Phase Resonance display ready - 1280x720 @ UNLIMITED FPS');
+                    console.log('🎬 Phase Resonance display ready - 1280x720 @ 30FPS');
                 }
                 
                 requestAnimationFrame(display);
@@ -1842,14 +1865,32 @@
         
         // 🔥 Receive FULL HD frame - PHASE SYNCHRONIZED
         let remotePhase = 0;
+        let framesReceived = 0;
         
         function handleVideoFrame(data) {
             const imageData = data.image || data.i;
-            if (!imageData) return;
+            if (!imageData) {
+                console.log('⚠️ handleVideoFrame: no image data!', data);
+                return;
+            }
+            
+            framesReceived++;
+            if (framesReceived % 30 === 1) {
+                console.log(`📥 Received frame ${framesReceived}, size: ${imageData.length} bytes`);
+            }
             
             // Track remote phase for synchronization
             if (data.phase) {
                 remotePhase = data.phase;
+            }
+            
+            // 🔥 Make sure canvas is ready!
+            if (!remoteFrameCanvas || !remoteFrameCtx) {
+                console.log('⚠️ Creating remote frame canvas...');
+                remoteFrameCanvas = document.createElement('canvas');
+                remoteFrameCanvas.width = 1280;
+                remoteFrameCanvas.height = 720;
+                remoteFrameCtx = remoteFrameCanvas.getContext('2d');
             }
             
             const img = new Image();
@@ -1857,6 +1898,13 @@
                 // FULL HD!
                 remoteFrameCtx.drawImage(img, 0, 0, 1280, 720);
                 remoteFrameData = remoteFrameCtx.getImageData(0, 0, 1280, 720);
+                
+                if (framesReceived === 1) {
+                    console.log('🎬 First frame displayed!');
+                }
+            };
+            img.onerror = (e) => {
+                console.error('❌ Image load error:', e);
             };
             img.src = imageData;
         }
