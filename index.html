@@ -880,14 +880,23 @@
                     updateStats();
                 });
                 
-                conn.on('open', () => {
-                    console.log('✅ Phase Resonance channel open! Starting Resonance Sync...');
-                    dataConnectionReady = true;  // 🔥 Mark as ready!
-                    // 🔥 Start Phase Resonance for answerer!
+                // 🔥 FIX: Check if already open OR wait for open event!
+                // In PeerJS, connection might already be open when received!
+                function startAnswererResonance() {
+                    console.log('✅ Phase Resonance channel ready! Starting Resonance Sync...');
+                    dataConnectionReady = true;
                     if (currentCallId) {
                         setupResonanceSync();
                     }
-                });
+                }
+                
+                if (conn.open) {
+                    // Already open - start immediately!
+                    startAnswererResonance();
+                } else {
+                    // Wait for open event
+                    conn.on('open', startAnswererResonance);
+                }
             });
             
             peer.on('error', (err) => {
