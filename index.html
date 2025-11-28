@@ -636,6 +636,7 @@
         // 🔥 PeerJS - Public Signaling (NO PORT FORWARD NEEDED!)
         let peer = null;
         let peerCall = null;
+        let peerDataConnection = null;  // 🔥 For Phase Resonance data!
         const PEERJS_CONFIG = {
             // Use public PeerJS cloud server - FREE and always accessible!
             host: '0.peerjs.com',
@@ -861,6 +862,29 @@
                 window.pendingPeerCall = call;
             });
             
+            // 🔥 Listen for data connections (Phase Resonance!)
+            peer.on('connection', (conn) => {
+                console.log('🔥 Phase Resonance data connection from:', conn.peer);
+                peerDataConnection = conn;
+                
+                conn.on('data', (data) => {
+                    // Handle Phase Resonance data!
+                    if (data.type === 'phase') {
+                        handlePhaseData(data);
+                    } else if (data.type === 'video_frame') {
+                        handleVideoFrame(data);
+                    } else if (data.type === 'audio') {
+                        handleAudioFrame(data);
+                    }
+                    packetsRx++;
+                    updateStats();
+                });
+                
+                conn.on('open', () => {
+                    console.log('✅ Phase Resonance channel open!');
+                });
+            });
+            
             peer.on('error', (err) => {
                 console.error('❌ PeerJS error:', err);
                 // Fallback to WebSocket if PeerJS fails
@@ -912,6 +936,12 @@
                 peerCall = call;
                 window.pendingPeerCall = null;
                 
+                // 🔥 Start Phase Resonance for answerer too!
+                currentCallId = 'p2p-' + Date.now();
+                if (peerDataConnection && peerDataConnection.open) {
+                    startPeerPhaseTransmission();
+                }
+                
             } catch (err) {
                 console.error('❌ Media error:', err);
                 alert('לא ניתן לגשת למצלמה/מיקרופון');
@@ -942,7 +972,30 @@
                 callStartTime = Date.now();
                 callTimer = setInterval(updateCallDuration, 1000);
                 
-                // Make the call
+                // 🔥 Open data connection for Phase Resonance FIRST!
+                peerDataConnection = peer.connect(peerId, { reliable: true });
+                
+                peerDataConnection.on('open', () => {
+                    console.log('✅ Phase Resonance channel open to:', peerId);
+                    // Start Phase Resonance transmission!
+                    currentCallId = 'p2p-' + Date.now();
+                    startPeerPhaseTransmission();
+                });
+                
+                peerDataConnection.on('data', (data) => {
+                    // Handle Phase Resonance data from peer!
+                    if (data.type === 'phase') {
+                        handlePhaseData(data);
+                    } else if (data.type === 'video_frame') {
+                        handleVideoFrame(data);
+                    } else if (data.type === 'audio') {
+                        handleAudioFrame(data);
+                    }
+                    packetsRx++;
+                    updateStats();
+                });
+                
+                // Make the video/audio call
                 const call = peer.call(peerId, localStream);
                 
                 call.on('stream', (remoteStream) => {
@@ -967,6 +1020,70 @@
                 console.error('❌ Media error:', err);
                 alert('לא ניתן לגשת למצלמה/מיקרופון');
             }
+        }
+        
+        // 🔥💀⚡ PHASE RESONANCE over PeerJS DataConnection! ⚡💀🔥
+        function startPeerPhaseTransmission() {
+            if (!peerDataConnection || peerDataConnection.open !== true) {
+                console.log('⏳ Waiting for data connection...');
+                setTimeout(startPeerPhaseTransmission, 100);
+                return;
+            }
+            
+            console.log('🔥💀⚡ PHASE RESONANCE @ 500Hz via P2P! ⚡💀🔥');
+            
+            const video = document.getElementById('localVideo');
+            const canvas = document.createElement('canvas');
+            canvas.width = 40;  // Small for phase detection
+            canvas.height = 30;
+            const ctx = canvas.getContext('2d');
+            
+            let lastFrameData = null;
+            
+            function phaseLoop() {
+                if (!localStream || !peerDataConnection) {
+                    return;
+                }
+                
+                phaseCounter++;
+                
+                // Sample video for activity detection
+                ctx.drawImage(video, 0, 0, 40, 30);
+                const imageData = ctx.getImageData(0, 0, 40, 30);
+                
+                // Calculate activity level
+                let totalChange = 0;
+                if (lastFrameData) {
+                    for (let i = 0; i < imageData.data.length; i += 4) {
+                        const diff = Math.abs(imageData.data[i] - lastFrameData.data[i]);
+                        totalChange += diff;
+                    }
+                }
+                lastFrameData = ctx.getImageData(0, 0, 40, 30);
+                
+                const activityLevel = Math.min(255, Math.floor(totalChange / 500));
+                myFrequency = 500 + activityLevel * 10;
+                
+                // 🔥 Send Phase data via P2P DataConnection!
+                if (peerDataConnection.open) {
+                    peerDataConnection.send({
+                        type: 'phase',
+                        bits: activityLevel,
+                        frequency: myFrequency,
+                        coherence: resonanceCoherence,
+                        phase: phaseCounter,
+                        t: Date.now()
+                    });
+                    
+                    packetsTx++;
+                    totalEnergy += 0.0001;
+                    updateStats();
+                }
+                
+                setTimeout(phaseLoop, 33);  // ~30fps
+            }
+            
+            phaseLoop();
         }
         
         function endPeerCall() {
