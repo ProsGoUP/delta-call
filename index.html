@@ -971,34 +971,10 @@
                 window.pendingPeerCall = null;
                 currentCallId = 'p2p-' + Date.now();
                 
-                console.log('✅ Call answered! Waiting for remote stream...');
+                console.log('✅ Call answered! Waiting for remote stream and DataConnection from caller...');
                 
-                // 🔥 Answerer also opens DataConnection for Phase Resonance!
-                console.log('🔥 Opening Phase Resonance DataConnection to caller...');
-                const callerPeerId = call.peer;
-                peerDataConnection = peer.connect(callerPeerId, { reliable: true });
-                
-                peerDataConnection.on('open', () => {
-                    console.log('✅ Phase Resonance channel OPEN (answerer)!');
-                    setupResonanceSync();
-                });
-                
-                peerDataConnection.on('data', (data) => {
-                    // Handle Phase Resonance data from caller!
-                    if (data.type === 'video_frame') {
-                        handleVideoFrame(data);
-                    } else if (data.type === 'audio') {
-                        handleAudioFrame(data);
-                    } else if (data.type === 'phase') {
-                        handlePhaseData(data);
-                    }
-                    packetsRx++;
-                    updateStats();
-                });
-                
-                peerDataConnection.on('error', (err) => {
-                    console.error('❌ DataConnection error:', err);
-                });
+                // 🔥 Answerer waits for DataConnection from caller via peer.on('connection')
+                // The caller opens the DataConnection, we receive it in initPeerJS()
                 
             } catch (err) {
                 console.error('❌ Media error:', err);
