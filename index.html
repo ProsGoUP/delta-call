@@ -882,6 +882,7 @@
                 
                 conn.on('open', () => {
                     console.log('✅ Phase Resonance channel open! Starting Resonance Sync...');
+                    dataConnectionReady = true;  // 🔥 Mark as ready!
                     // 🔥 Start Phase Resonance for answerer!
                     if (currentCallId) {
                         setupResonanceSync();
@@ -1071,6 +1072,7 @@
                 
                 peerDataConnection.on('open', () => {
                     console.log('✅ Phase Resonance channel OPEN!');
+                    dataConnectionReady = true;  // 🔥 Mark as ready!
                     // 🔥 Start Phase Resonance transmission!
                     setupResonanceSync();
                 });
@@ -1615,12 +1617,19 @@
         let audioProcessor = null;
         let deltaTransmissionStarted = false;  // 🔥 Prevent double-start!
         
+        // 🔥 Flag to track if DataConnection is ready
+        let dataConnectionReady = false;
+        
         // 🔥 Universal send function - works with WebSocket OR PeerJS DataConnection!
         function sendResonanceData(data) {
             // Try PeerJS DataConnection first (P2P mode)
-            if (peerDataConnection && peerDataConnection.open) {
-                peerDataConnection.send(data);
-                return true;
+            if (dataConnectionReady && peerDataConnection) {
+                try {
+                    peerDataConnection.send(data);
+                    return true;
+                } catch (e) {
+                    console.error('Send error:', e);
+                }
             }
             // Fallback to WebSocket (server mode)
             if (webSocket && webSocket.readyState === WebSocket.OPEN) {
@@ -1655,7 +1664,7 @@
                 phaseCounter++;
                 
                 // 🔥 Check if we have a valid transport (WebSocket OR PeerJS)
-                const peerOpen = peerDataConnection && peerDataConnection.open;
+                const peerOpen = dataConnectionReady && peerDataConnection;
                 const wsOpen = webSocket && webSocket.readyState === WebSocket.OPEN;
                 const hasTransport = peerOpen || wsOpen;
                 
@@ -1744,7 +1753,7 @@
                 
                 audioProcessor.onaudioprocess = (e) => {
                     // 🔥 Check for valid transport (WebSocket OR PeerJS)
-                    const hasTransport = (peerDataConnection && peerDataConnection.open) || 
+                    const hasTransport = dataConnectionReady || 
                                          (webSocket && webSocket.readyState === WebSocket.OPEN);
                     if (!currentCallId || !hasTransport) return;
                     
