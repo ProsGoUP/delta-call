@@ -889,7 +889,10 @@
                     }
                     
                     // Handle Phase Resonance data!
-                    if (data.type === 'phase') {
+                    if (data.type === 'phase_sync') {
+                        // 🔥 PHASE SYNC: Sync our time to caller's time!
+                        handlePhaseSync(data);
+                    } else if (data.type === 'phase') {
                         handlePhaseData(data);
                     } else if (data.type === 'video_frame') {
                         handleVideoFrame(data);
@@ -1158,6 +1161,14 @@
                     // 🔥 Show visual indicator that Phase Resonance is ready!
                     updateStatus('🔥 Phase Resonance מחובר!', 'connected');
                     
+                    // 🔥 PHASE SYNC: Send our callStartTime to peer so we're on SAME PHASE!
+                    peerDataConnection.send({
+                        type: 'phase_sync',
+                        callStartTime: callStartTime,
+                        phaseOrigin: Date.now()
+                    });
+                    console.log('📡 Sent phase_sync to peer, callStartTime:', callStartTime);
+                    
                     // 🔥 Start Phase Resonance transmission!
                     setupResonanceSync();
                 });
@@ -1180,7 +1191,10 @@
                     }
                     
                     // Handle Phase Resonance data from peer!
-                    if (data.type === 'video_frame') {
+                    if (data.type === 'phase_sync') {
+                        // 🔥 PHASE SYNC: Sync our time to caller's time!
+                        handlePhaseSync(data);
+                    } else if (data.type === 'video_frame') {
                         handleVideoFrame(data);
                     } else if (data.type === 'audio') {
                         handleAudioFrame(data);
@@ -2048,6 +2062,34 @@
         }
         
         function playNextAudio() {}
+        
+        // 🔥 PHASE SYNC: Sync callStartTime to caller's time!
+        // This ensures BOTH sides are on the SAME PHASE!
+        let phaseOffset = 0;  // Offset between our time and caller's time
+        
+        function handlePhaseSync(data) {
+            const callerStartTime = data.callStartTime;
+            const callerPhaseOrigin = data.phaseOrigin;
+            const now = Date.now();
+            
+            // Calculate network latency (round-trip / 2)
+            const latency = (now - callerPhaseOrigin) / 2;
+            
+            // Sync our callStartTime to caller's
+            callStartTime = callerStartTime;
+            phaseOffset = now - callerPhaseOrigin;
+            
+            console.log('╔══════════════════════════════════════════╗');
+            console.log('║ 🔥 PHASE SYNC RECEIVED!                  ║');
+            console.log('╚══════════════════════════════════════════╝');
+            console.log('   Caller start time:', callerStartTime);
+            console.log('   Network latency:', latency.toFixed(0), 'ms');
+            console.log('   Phase offset:', phaseOffset.toFixed(0), 'ms');
+            console.log('   NOW SYNCHRONIZED TO SAME PHASE! ⚡');
+            
+            // Update status
+            updateStatus('🔥 Phase Synchronized!', 'connected');
+        }
         
         // 🔥 Handle incoming full frame (legacy)
         function handleFullFrame(data) {
