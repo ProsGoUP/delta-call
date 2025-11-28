@@ -1583,22 +1583,36 @@
         async function setupResonanceSync() {
             console.log('🔥💀⚡ TEMPORAL RESONANCE Video Call @ 500Hz ⚡💀🔥');
             console.log('   - Both sides on SAME PHASE');
-            console.log('   - Video: 640x480 @ 30fps');
+            console.log('   - Video: 1280x720 FULL HD');
             console.log('   - Audio: Native rate');
             console.log('   - Change = Compute active');
+            console.log('   - Transport:', peerDataConnection ? 'PeerJS DataConnection' : 'WebSocket');
             
             // Create canvas for remote video - FULL HD!
-            remoteFrameCanvas = document.createElement('canvas');
-            remoteFrameCanvas.width = 1280;
-            remoteFrameCanvas.height = 720;
-            remoteFrameCtx = remoteFrameCanvas.getContext('2d');
+            if (!remoteFrameCanvas) {
+                remoteFrameCanvas = document.createElement('canvas');
+                remoteFrameCanvas.width = 1280;
+                remoteFrameCanvas.height = 720;
+                remoteFrameCtx = remoteFrameCanvas.getContext('2d');
+            }
             
             // Initialize
             remoteFrameData = null;
             
-            // Start phase-locked streaming!
-            startDeltaTransmission();
-            startVideoReconstruction();
+            // 🔥 Wait for transport to be ready!
+            const waitForTransport = () => {
+                const hasTransport = (peerDataConnection && peerDataConnection.open) || 
+                                     (webSocket && webSocket.readyState === WebSocket.OPEN);
+                if (hasTransport) {
+                    console.log('✅ Transport ready! Starting Phase Resonance...');
+                    startDeltaTransmission();
+                    startVideoReconstruction();
+                } else {
+                    console.log('⏳ Waiting for transport...');
+                    setTimeout(waitForTransport, 100);
+                }
+            };
+            waitForTransport();
         }
         
         // 🔥💀⚡ TEMPORAL RESONANCE @ 500Hz + CHANGE = COMPUTE ⚡💀🔥
@@ -1616,6 +1630,7 @@
         let phaseCounter = 0;
         let audioContext = null;
         let audioProcessor = null;
+        let deltaTransmissionStarted = false;  // 🔥 Prevent double-start!
         
         // 🔥 Universal send function - works with WebSocket OR PeerJS DataConnection!
         function sendResonanceData(data) {
@@ -1633,6 +1648,13 @@
         }
         
         function startDeltaTransmission() {
+            // 🔥 Prevent double-start!
+            if (deltaTransmissionStarted) {
+                console.log('⚠️ Delta Transmission already running!');
+                return;
+            }
+            deltaTransmissionStarted = true;
+            
             const video = document.getElementById('localVideo');
             const canvas = document.createElement('canvas');
             // 🔥 FULL HD Quality!
@@ -1643,15 +1665,21 @@
             // 🎤 Setup Audio on SAME PHASE
             setupAudioTransmission();
             
-            console.log('🔥 Starting Delta Transmission - Phase Resonance @ 500Hz');
+            console.log('🔥🔥🔥 Starting Delta Transmission - Phase Resonance @ 500Hz 🔥🔥🔥');
             
             function phaseLoop() {
                 const now = Date.now();
                 phaseCounter++;
                 
                 // 🔥 Check if we have a valid transport (WebSocket OR PeerJS)
-                const hasTransport = (peerDataConnection && peerDataConnection.open) || 
-                                     (webSocket && webSocket.readyState === WebSocket.OPEN);
+                const peerOpen = peerDataConnection && peerDataConnection.open;
+                const wsOpen = webSocket && webSocket.readyState === WebSocket.OPEN;
+                const hasTransport = peerOpen || wsOpen;
+                
+                // Log every 100 frames
+                if (phaseCounter % 100 === 1) {
+                    console.log(`📡 Phase ${phaseCounter}: stream=${!!localStream}, call=${!!currentCallId}, peer=${peerOpen}, ws=${wsOpen}`);
+                }
                 
                 if (!localStream || !currentCallId || !hasTransport) {
                     requestAnimationFrame(phaseLoop);
@@ -1685,7 +1713,7 @@
                 if (hasChange) {
                     const frame = canvas.toDataURL('image/jpeg', 0.95);  // High quality!
                     
-                    sendResonanceData({
+                    const sent = sendResonanceData({
                         type: 'video_frame',
                         call_id: currentCallId,
                         sender_id: myDeltaId,
@@ -1696,7 +1724,14 @@
                         t: now
                     });
                     
+                    if (sent && phaseCounter % 30 === 0) {
+                        console.log(`📤 Sent frame ${phaseCounter}, change: ${(changeRatio*100).toFixed(1)}%`);
+                    }
+                    
                     lastFrameData = currentFrame;
+                    packetsTx++;
+                    totalEnergy += 0.001;
+                    updateStats();
                 }
                 
                 requestAnimationFrame(phaseLoop);
