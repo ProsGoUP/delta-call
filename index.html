@@ -1543,6 +1543,14 @@
             let streamSet = false;
             
             function display() {
+                // 🔥 If PeerJS already set a real stream, don't override it!
+                if (remoteVideo.srcObject && remoteVideo.srcObject.getVideoTracks && 
+                    remoteVideo.srcObject.getVideoTracks().length > 0 &&
+                    remoteVideo.srcObject !== remoteFrameCanvas.captureStream(0)) {
+                    // PeerJS stream is active - don't override!
+                    return;
+                }
+                
                 if (!remoteFrameData) {
                     remoteFrameCtx.fillStyle = '#0a0a0a';
                     remoteFrameCtx.fillRect(0, 0, 1280, 720);
@@ -1554,7 +1562,7 @@
                     remoteFrameCtx.putImageData(remoteFrameData, 0, 0);
                 }
                 
-                if (!streamSet) {
+                if (!streamSet && !remoteVideo.srcObject) {
                     // UNLIMITED FPS - event driven!
                     const stream = remoteFrameCanvas.captureStream(0);  // 0 = unlimited!
                     remoteVideo.srcObject = stream;
