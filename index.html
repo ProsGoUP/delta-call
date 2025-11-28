@@ -1641,10 +1641,22 @@
             canvas.height = 720;
             const ctx = canvas.getContext('2d');
             
-            // 🎤 Setup Audio on SAME PHASE
-            setupAudioTransmission();
+            // 🔥 Wait for video to be ready before starting!
+            function waitForVideoReady() {
+                if (video.videoWidth > 0 && video.videoHeight > 0) {
+                    console.log('✅ Video ready:', video.videoWidth, 'x', video.videoHeight);
+                    startPhaseLoop();
+                } else {
+                    console.log('⏳ Waiting for video to be ready...');
+                    setTimeout(waitForVideoReady, 100);
+                }
+            }
             
-            console.log('🔥🔥🔥 Starting Delta Transmission - Phase Resonance @ 500Hz 🔥🔥🔥');
+            function startPhaseLoop() {
+                // 🎤 Setup Audio on SAME PHASE
+                setupAudioTransmission();
+                
+                console.log('🔥🔥🔥 Starting Delta Transmission - Phase Resonance @ 500Hz 🔥🔥🔥');
             
             function phaseLoop() {
                 const now = Date.now();
@@ -1730,6 +1742,10 @@
             console.log('   - JPEG Quality: 95%');
             console.log('   - Change Threshold: 1.5%');
             console.log('   - EVENT-DRIVEN (not clock-driven!)');
+            } // end startPhaseLoop
+            
+            // 🔥 Start waiting for video to be ready!
+            waitForVideoReady();
         }
         
         // 🎤 PHASE-LOCKED Audio Transmission
