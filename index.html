@@ -904,6 +904,9 @@
             
             const call = window.pendingPeerCall;
             
+            // 🔥 Mark P2P mode IMMEDIATELY!
+            usingPeerJSStream = true;
+            
             // Get local media
             try {
                 localStream = await navigator.mediaDevices.getUserMedia({ 
@@ -921,14 +924,17 @@
                 callTimer = setInterval(updateCallDuration, 1000);
                 
                 // Answer the call with our stream
+                console.log('📞 Answering call...');
                 call.answer(localStream);
                 
                 call.on('stream', (remoteStream) => {
-                    console.log('🎥 Got remote stream from caller!');
-                    usingPeerJSStream = true;  // 🔥 Mark that we're using PeerJS!
+                    console.log('🎥 GOT REMOTE STREAM FROM CALLER! Tracks:', remoteStream.getTracks().length);
                     const remoteVideo = document.getElementById('remoteVideo');
                     remoteVideo.srcObject = remoteStream;
-                    remoteVideo.play().catch(e => console.log('Video play error:', e));
+                    remoteVideo.onloadedmetadata = () => {
+                        console.log('🎬 Remote video metadata loaded!');
+                        remoteVideo.play().catch(e => console.log('Play error:', e));
+                    };
                 });
                 
                 call.on('close', () => {
@@ -939,16 +945,12 @@
                 
                 peerCall = call;
                 window.pendingPeerCall = null;
-                
-                // 🔥 Start Phase Resonance for answerer too!
                 currentCallId = 'p2p-' + Date.now();
-                if (peerDataConnection && peerDataConnection.open) {
-                    startPeerPhaseTransmission();
-                }
                 
             } catch (err) {
                 console.error('❌ Media error:', err);
                 alert('לא ניתן לגשת למצלמה/מיקרופון');
+                usingPeerJSStream = false;
             }
         }
         
@@ -960,6 +962,9 @@
             }
             
             console.log('📞 Starting P2P call to:', peerId);
+            
+            // 🔥 Mark P2P mode IMMEDIATELY - before anything else!
+            usingPeerJSStream = true;
             
             try {
                 // Get local media
@@ -976,43 +981,35 @@
                 callStartTime = Date.now();
                 callTimer = setInterval(updateCallDuration, 1000);
                 
-                // 🔥 Open data connection for Phase Resonance FIRST!
-                peerDataConnection = peer.connect(peerId, { reliable: true });
-                
-                peerDataConnection.on('open', () => {
-                    console.log('✅ Phase Resonance channel open to:', peerId);
-                    // Start Phase Resonance transmission!
-                    currentCallId = 'p2p-' + Date.now();
-                    startPeerPhaseTransmission();
-                });
-                
-                peerDataConnection.on('data', (data) => {
-                    // Handle Phase Resonance data from peer!
-                    if (data.type === 'phase') {
-                        handlePhaseData(data);
-                    } else if (data.type === 'video_frame') {
-                        handleVideoFrame(data);
-                    } else if (data.type === 'audio') {
-                        handleAudioFrame(data);
-                    }
-                    packetsRx++;
-                    updateStats();
-                });
+                // 🔥 Show waiting message on remote video
+                const remoteVideo = document.getElementById('remoteVideo');
+                remoteVideo.poster = '';
+                remoteVideo.style.background = '#111';
                 
                 // Make the video/audio call
+                console.log('📞 Calling peer:', peerId);
                 const call = peer.call(peerId, localStream);
                 
+                if (!call) {
+                    console.error('❌ Failed to create call!');
+                    alert('לא הצלחתי להתחבר - וודא שה-ID נכון');
+                    return;
+                }
+                
                 call.on('stream', (remoteStream) => {
-                    console.log('🎥 Got remote stream from peer!');
-                    usingPeerJSStream = true;  // 🔥 Mark that we're using PeerJS!
+                    console.log('🎥 GOT REMOTE STREAM! Tracks:', remoteStream.getTracks().length);
                     const remoteVideo = document.getElementById('remoteVideo');
                     remoteVideo.srcObject = remoteStream;
-                    remoteVideo.play().catch(e => console.log('Video play error:', e));
+                    remoteVideo.onloadedmetadata = () => {
+                        console.log('🎬 Remote video metadata loaded!');
+                        remoteVideo.play().catch(e => console.log('Play error:', e));
+                    };
                 });
                 
                 call.on('error', (err) => {
                     console.error('❌ Call error:', err);
-                    alert('שגיאה בהתחברות');
+                    alert('שגיאה בהתחברות: ' + err.message);
+                    usingPeerJSStream = false;
                     endCall();
                 });
                 
@@ -1023,10 +1020,12 @@
                 });
                 
                 peerCall = call;
+                currentCallId = 'p2p-' + Date.now();
                 
             } catch (err) {
                 console.error('❌ Media error:', err);
                 alert('לא ניתן לגשת למצלמה/מיקרופון');
+                usingPeerJSStream = false;
             }
         }
         
