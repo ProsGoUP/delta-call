@@ -1222,18 +1222,8 @@
             // 🔥 Use PeerJS for P2P call - NO PORT FORWARD NEEDED!
             if (peer && peer.open) {
                 console.log('🔥 Using PeerJS P2P (no port forward needed!)');
+                // startPeerCall opens video screen immediately - don't override!
                 await startPeerCall(targetId);
-                
-                document.getElementById('callInput').innerHTML = `
-                    <h3>📞 מתקשר דרך P2P...</h3>
-                    <p style="color: #888;">ממתין לתשובה מ-${targetId}</p>
-                    <p style="color: #00ff88; font-size: 12px; margin-top: 10px;">
-                        🔥 P2P Direct - No Port Forward!
-                    </p>
-                    <button class="btn btn-decline" onclick="cancelCall()" style="margin-top: 20px;">
-                        ❌ בטל
-                    </button>
-                `;
                 return;
             }
             
