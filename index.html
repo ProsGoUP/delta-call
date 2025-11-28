@@ -924,12 +924,16 @@
                 call.answer(localStream);
                 
                 call.on('stream', (remoteStream) => {
-                    console.log('🎥 Got remote stream!');
-                    document.getElementById('remoteVideo').srcObject = remoteStream;
+                    console.log('🎥 Got remote stream from caller!');
+                    usingPeerJSStream = true;  // 🔥 Mark that we're using PeerJS!
+                    const remoteVideo = document.getElementById('remoteVideo');
+                    remoteVideo.srcObject = remoteStream;
+                    remoteVideo.play().catch(e => console.log('Video play error:', e));
                 });
                 
                 call.on('close', () => {
                     console.log('📴 Call closed');
+                    usingPeerJSStream = false;
                     endCall();
                 });
                 
@@ -999,8 +1003,11 @@
                 const call = peer.call(peerId, localStream);
                 
                 call.on('stream', (remoteStream) => {
-                    console.log('🎥 Got remote stream!');
-                    document.getElementById('remoteVideo').srcObject = remoteStream;
+                    console.log('🎥 Got remote stream from peer!');
+                    usingPeerJSStream = true;  // 🔥 Mark that we're using PeerJS!
+                    const remoteVideo = document.getElementById('remoteVideo');
+                    remoteVideo.srcObject = remoteStream;
+                    remoteVideo.play().catch(e => console.log('Video play error:', e));
                 });
                 
                 call.on('error', (err) => {
@@ -1011,6 +1018,7 @@
                 
                 call.on('close', () => {
                     console.log('📴 Call closed');
+                    usingPeerJSStream = false;
                     endCall();
                 });
                 
@@ -1667,16 +1675,17 @@
 
         
         // 🔥 Display FULL HD remote video - EVENT-DRIVEN!
+        // Flag to track if we're using PeerJS stream
+        let usingPeerJSStream = false;
+        
         function startVideoReconstruction() {
             const remoteVideo = document.getElementById('remoteVideo');
             let streamSet = false;
             
             function display() {
                 // 🔥 If PeerJS already set a real stream, don't override it!
-                if (remoteVideo.srcObject && remoteVideo.srcObject.getVideoTracks && 
-                    remoteVideo.srcObject.getVideoTracks().length > 0 &&
-                    remoteVideo.srcObject !== remoteFrameCanvas.captureStream(0)) {
-                    // PeerJS stream is active - don't override!
+                if (usingPeerJSStream) {
+                    // PeerJS stream is active - stop this loop!
                     return;
                 }
                 
