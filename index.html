@@ -900,9 +900,13 @@
         }
         
         async function answerPeerCall() {
-            if (!window.pendingPeerCall) return;
+            if (!window.pendingPeerCall) {
+                console.error('❌ No pending call to answer!');
+                return;
+            }
             
             const call = window.pendingPeerCall;
+            console.log('📞 Answering P2P call from:', call.peer);
             
             // 🔥 Mark P2P mode IMMEDIATELY!
             usingPeerJSStream = true;
@@ -914,6 +918,7 @@
                     audio: true 
                 });
                 
+                console.log('📹 Local stream ready:', localStream.getTracks().map(t => t.kind + ':' + t.enabled));
                 document.getElementById('localVideo').srcObject = localStream;
                 
                 // 🔥 Show video container IMMEDIATELY for answerer!
@@ -923,18 +928,24 @@
                 callStartTime = Date.now();
                 callTimer = setInterval(updateCallDuration, 1000);
                 
-                // Answer the call with our stream
-                console.log('📞 Answering call...');
-                call.answer(localStream);
-                
+                // 🔥 IMPORTANT: Set up stream handler BEFORE answering!
                 call.on('stream', (remoteStream) => {
-                    console.log('🎥 GOT REMOTE STREAM FROM CALLER! Tracks:', remoteStream.getTracks().length);
+                    console.log('🎥🎥🎥 GOT REMOTE STREAM FROM CALLER! 🎥🎥🎥');
+                    console.log('   Tracks:', remoteStream.getTracks().map(t => t.kind + ':' + t.enabled + ':' + t.readyState));
+                    
                     const remoteVideo = document.getElementById('remoteVideo');
                     remoteVideo.srcObject = remoteStream;
-                    remoteVideo.onloadedmetadata = () => {
-                        console.log('🎬 Remote video metadata loaded!');
-                        remoteVideo.play().catch(e => console.log('Play error:', e));
-                    };
+                    remoteVideo.muted = false;
+                    remoteVideo.volume = 1.0;
+                    
+                    // Force play
+                    remoteVideo.play().then(() => {
+                        console.log('✅ Remote video playing!');
+                    }).catch(e => {
+                        console.log('⚠️ Play error (trying muted):', e);
+                        remoteVideo.muted = true;
+                        remoteVideo.play();
+                    });
                 });
                 
                 call.on('close', () => {
@@ -943,9 +954,20 @@
                     endCall();
                 });
                 
+                call.on('error', (err) => {
+                    console.error('❌ Call error:', err);
+                    usingPeerJSStream = false;
+                });
+                
+                // Answer the call with our stream
+                console.log('📞 Sending answer with local stream...');
+                call.answer(localStream);
+                
                 peerCall = call;
                 window.pendingPeerCall = null;
                 currentCallId = 'p2p-' + Date.now();
+                
+                console.log('✅ Call answered! Waiting for remote stream...');
                 
             } catch (err) {
                 console.error('❌ Media error:', err);
@@ -988,22 +1010,36 @@
                 
                 // Make the video/audio call
                 console.log('📞 Calling peer:', peerId);
+                console.log('📞 Local stream tracks:', localStream.getTracks().map(t => t.kind + ':' + t.enabled));
+                
                 const call = peer.call(peerId, localStream);
                 
                 if (!call) {
                     console.error('❌ Failed to create call!');
                     alert('לא הצלחתי להתחבר - וודא שה-ID נכון');
+                    usingPeerJSStream = false;
                     return;
                 }
                 
+                console.log('📞 Call created, waiting for stream...');
+                
                 call.on('stream', (remoteStream) => {
-                    console.log('🎥 GOT REMOTE STREAM! Tracks:', remoteStream.getTracks().length);
+                    console.log('🎥🎥🎥 GOT REMOTE STREAM! 🎥🎥🎥');
+                    console.log('   Tracks:', remoteStream.getTracks().map(t => t.kind + ':' + t.enabled + ':' + t.readyState));
+                    
                     const remoteVideo = document.getElementById('remoteVideo');
                     remoteVideo.srcObject = remoteStream;
-                    remoteVideo.onloadedmetadata = () => {
-                        console.log('🎬 Remote video metadata loaded!');
-                        remoteVideo.play().catch(e => console.log('Play error:', e));
-                    };
+                    remoteVideo.muted = false;
+                    remoteVideo.volume = 1.0;
+                    
+                    // Force play
+                    remoteVideo.play().then(() => {
+                        console.log('✅ Remote video playing!');
+                    }).catch(e => {
+                        console.log('⚠️ Play error (trying muted):', e);
+                        remoteVideo.muted = true;
+                        remoteVideo.play();
+                    });
                 });
                 
                 call.on('error', (err) => {
@@ -1678,13 +1714,19 @@
         let usingPeerJSStream = false;
         
         function startVideoReconstruction() {
+            // 🔥 If PeerJS mode - DON'T use canvas reconstruction!
+            if (usingPeerJSStream) {
+                console.log('🔥 PeerJS mode - using WebRTC stream directly, no canvas needed!');
+                return;
+            }
+            
             const remoteVideo = document.getElementById('remoteVideo');
             let streamSet = false;
             
             function display() {
-                // 🔥 If PeerJS already set a real stream, don't override it!
+                // 🔥 If PeerJS already set a real stream, stop this loop!
                 if (usingPeerJSStream) {
-                    // PeerJS stream is active - stop this loop!
+                    console.log('🔥 PeerJS stream detected - stopping canvas reconstruction!');
                     return;
                 }
                 
