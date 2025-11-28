@@ -898,6 +898,19 @@
                     setupResonanceSync();
                 }
                 
+                // 🔥 Handle connection close
+                conn.on('close', () => {
+                    console.log('⚠️ DataConnection closed!');
+                    dataConnectionReady = false;
+                    peerDataConnection = null;
+                });
+                
+                // 🔥 Handle connection error
+                conn.on('error', (err) => {
+                    console.error('❌ DataConnection error:', err);
+                    dataConnectionReady = false;
+                });
+                
                 if (conn.open) {
                     // Already open - start immediately!
                     startAnswererResonance();
@@ -1099,6 +1112,13 @@
                 
                 peerDataConnection.on('error', (err) => {
                     console.error('❌ DataConnection ERROR:', err);
+                    dataConnectionReady = false;
+                });
+                
+                peerDataConnection.on('close', () => {
+                    console.log('⚠️ CALLER: DataConnection closed!');
+                    dataConnectionReady = false;
+                    peerDataConnection = null;
                 });
                 
                 peerDataConnection.on('data', (data) => {
