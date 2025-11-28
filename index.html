@@ -1109,69 +1109,8 @@
             }
         }
         
-        // 🔥💀⚡ PHASE RESONANCE over PeerJS DataConnection! ⚡💀🔥
-        function startPeerPhaseTransmission() {
-            if (!peerDataConnection || peerDataConnection.open !== true) {
-                console.log('⏳ Waiting for data connection...');
-                setTimeout(startPeerPhaseTransmission, 100);
-                return;
-            }
-            
-            console.log('🔥💀⚡ PHASE RESONANCE @ 500Hz via P2P! ⚡💀🔥');
-            
-            const video = document.getElementById('localVideo');
-            const canvas = document.createElement('canvas');
-            canvas.width = 40;  // Small for phase detection
-            canvas.height = 30;
-            const ctx = canvas.getContext('2d');
-            
-            let lastFrameData = null;
-            
-            function phaseLoop() {
-                if (!localStream || !peerDataConnection) {
-                    return;
-                }
-                
-                phaseCounter++;
-                
-                // Sample video for activity detection
-                ctx.drawImage(video, 0, 0, 40, 30);
-                const imageData = ctx.getImageData(0, 0, 40, 30);
-                
-                // Calculate activity level
-                let totalChange = 0;
-                if (lastFrameData) {
-                    for (let i = 0; i < imageData.data.length; i += 4) {
-                        const diff = Math.abs(imageData.data[i] - lastFrameData.data[i]);
-                        totalChange += diff;
-                    }
-                }
-                lastFrameData = ctx.getImageData(0, 0, 40, 30);
-                
-                const activityLevel = Math.min(255, Math.floor(totalChange / 500));
-                myFrequency = 500 + activityLevel * 10;
-                
-                // 🔥 Send Phase data via P2P DataConnection!
-                if (peerDataConnection.open) {
-                    peerDataConnection.send({
-                        type: 'phase',
-                        bits: activityLevel,
-                        frequency: myFrequency,
-                        coherence: resonanceCoherence,
-                        phase: phaseCounter,
-                        t: Date.now()
-                    });
-                    
-                    packetsTx++;
-                    totalEnergy += 0.0001;
-                    updateStats();
-                }
-                
-                setTimeout(phaseLoop, 33);  // ~30fps
-            }
-            
-            phaseLoop();
-        }
+        // 🔥 startPeerPhaseTransmission REMOVED - using startDeltaTransmission instead!
+        // (Old duplicate phaseLoop function was here)
         
         function endPeerCall() {
             if (peerCall) {
