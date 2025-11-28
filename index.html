@@ -1000,6 +1000,9 @@
                     console.log('🎥🎥🎥 GOT REMOTE STREAM FROM CALLER! 🎥🎥🎥');
                     console.log('   Tracks:', remoteStream.getTracks().map(t => t.kind + ':' + t.enabled + ':' + t.readyState));
                     
+                    // 🔥 CRITICAL: Mark that we're using PeerJS stream!
+                    usingPeerJSStream = true;
+                    
                     const remoteVideo = document.getElementById('remoteVideo');
                     remoteVideo.srcObject = remoteStream;
                     remoteVideo.muted = false;
@@ -1097,6 +1100,9 @@
                 call.on('stream', (remoteStream) => {
                     console.log('🎥🎥🎥 GOT REMOTE STREAM! 🎥🎥🎥');
                     console.log('   Tracks:', remoteStream.getTracks().map(t => t.kind + ':' + t.enabled + ':' + t.readyState));
+                    
+                    // 🔥 CRITICAL: Mark that we're using PeerJS stream!
+                    usingPeerJSStream = true;
                     
                     const remoteVideo = document.getElementById('remoteVideo');
                     remoteVideo.srcObject = remoteStream;
