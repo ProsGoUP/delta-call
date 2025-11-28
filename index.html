@@ -1663,12 +1663,17 @@
         
         // 🔥 Universal send function - works with WebSocket OR PeerJS DataConnection!
         function sendResonanceData(data) {
+            // 🔥 LOG EVERY CALL for first 10
+            if (packetsTx < 10) {
+                console.log(`🔍 sendResonanceData called: dataConnectionReady=${dataConnectionReady}, peerDC=${!!peerDataConnection}, peerDC.open=${peerDataConnection?.open}`);
+            }
+            
             // Try PeerJS DataConnection first (P2P mode)
             if (dataConnectionReady && peerDataConnection) {
                 try {
                     peerDataConnection.send(data);
-                    // Log first 3 sends
-                    if (packetsTx < 3) {
+                    // Log first 5 sends
+                    if (packetsTx < 5) {
                         console.log('🚀 PACKET #' + (packetsTx + 1) + ' SENT via PeerJS DataConnection!', data.type);
                     }
                     return true;
@@ -1676,8 +1681,8 @@
                     console.error('❌ Send error:', e);
                 }
             } else {
-                // Log why we can't send - every 50 frames
-                if (phaseCounter % 50 === 1) {
+                // Log why we can't send - every 30 frames
+                if (phaseCounter % 30 === 1) {
                     console.log(`⚠️ Cannot send: dataConnectionReady=${dataConnectionReady}, peerDataConnection=${!!peerDataConnection}, peerDC.open=${peerDataConnection?.open}`);
                 }
             }
