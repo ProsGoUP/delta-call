@@ -885,9 +885,12 @@
                 function startAnswererResonance() {
                     console.log('✅ Phase Resonance channel ready! Starting Resonance Sync...');
                     dataConnectionReady = true;
-                    if (currentCallId) {
-                        setupResonanceSync();
+                    // 🔥 Generate callId if not set yet (DataConnection can arrive before answer!)
+                    if (!currentCallId) {
+                        currentCallId = 'p2p-answerer-' + Date.now();
+                        console.log('📞 Generated answerer callId:', currentCallId);
                     }
+                    setupResonanceSync();
                 }
                 
                 if (conn.open) {
