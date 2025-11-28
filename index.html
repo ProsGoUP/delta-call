@@ -831,7 +831,12 @@
         
         function initPeerJS() {
             // Create peer with our Delta ID (cleaned for PeerJS)
-            const peerId = myDeltaId.replace(/[^a-zA-Z0-9]/g, '-');
+            // PeerJS IDs must start with letter and contain only alphanumeric + hyphen
+            let peerId = myDeltaId.replace(/[^a-zA-Z0-9]/g, '');
+            // Ensure it starts with a letter
+            if (!/^[a-zA-Z]/.test(peerId)) {
+                peerId = 'D' + peerId;
+            }
             
             console.log('🔥 Initializing PeerJS with ID:', peerId);
             
@@ -903,8 +908,11 @@
         }
         
         async function startPeerCall(targetId) {
-            // Clean target ID for PeerJS
-            const peerId = targetId.replace(/[^a-zA-Z0-9]/g, '-');
+            // Clean target ID for PeerJS - must start with letter
+            let peerId = targetId.replace(/[^a-zA-Z0-9]/g, '');
+            if (!/^[a-zA-Z]/.test(peerId)) {
+                peerId = 'D' + peerId;
+            }
             
             console.log('📞 Starting P2P call to:', peerId);
             
