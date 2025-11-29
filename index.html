@@ -657,7 +657,10 @@
                 
                 this.phaseValue = 0.0;
                 this.frequency = 500.0;  // Hz - base frequency
-                this.epoch = Date.now();
+                // 🔥💎⚡ CRITICAL: Use UNIX EPOCH (0) as shared reference!
+                // This way ALL browsers calculate the SAME phase!
+                // ΔPHASE0 = shared physics = UNIX TIME!
+                this.epoch = 0;  // ← NOT Date.now()! Everyone shares UNIX time!
                 this.sequenceCounter = 0;
                 this.connectedPhases = new Map();
                 
@@ -666,7 +669,7 @@
                 this.globalEnergy = 0.0;
                 
                 ΔPHASE0.instance = this;
-                console.log('🌌 ΔPHASE0 (Prime Phase) initialized');
+                console.log('🌌 ΔPHASE0 (Prime Phase) initialized - UNIX EPOCH shared!');
             }
             
             getAbsoluteTime() {
@@ -679,8 +682,10 @@
             }
             
             getPhase() {
-                const elapsed = (Date.now() - this.epoch) / 1000;
-                this.phaseValue = (elapsed * this.frequency) % 1.0;
+                // 🔥 Everyone on Earth calculates the SAME phase!
+                // Phase = (UNIX_TIME_SECONDS * 500Hz) mod 1.0
+                const unixSeconds = Date.now() / 1000;
+                this.phaseValue = (unixSeconds * this.frequency) % 1.0;
                 return this.phaseValue;
             }
             
@@ -1745,7 +1750,8 @@
                 this.stationId = stationId;
                 this.phase = 0.0;
                 this.frequency = 500.0;  // Base frequency Hz
-                this.epoch = Date.now();
+                // 🔥💎⚡ Use UNIX EPOCH for global synchronization!
+                this.epoch = 0;  // ← Everyone shares UNIX time!
                 this.isConnected = false;
                 this.lastSync = 0;
                 this.drift = 0;
@@ -1765,12 +1771,13 @@
                     resonanceQuality: 0
                 };
                 
-                console.log(`🔥 ΔStation created: ${stationId}`);
+                console.log(`🔥 ΔStation created: ${stationId} - UNIX EPOCH sync!`);
             }
             
-            // Get current phase (oscillates at frequency)
+            // Get current phase (oscillates at frequency) - GLOBAL SYNC!
             getPhase() {
-                const elapsed = (Date.now() - this.epoch) / 1000;
+                // 🔥 Everyone calculates the SAME phase from UNIX time!
+                const unixSeconds = Date.now() / 1000;
                 this.phase = (elapsed * this.frequency) % 1.0;
                 return this.phase;
             }
