@@ -4035,7 +4035,7 @@
             
             // 🔥 FAST reconstruction - direct color fill!
             const phaseOffset = (signature / 255) * 30 - 15;
-            const blend = Math.min(0.3, change / 100);
+            const blend = Math.min(0.5, Math.max(0.1, change / 100));  // At least 10% blend!
             
             // Calculate target colors
             const targetR = Math.max(0, Math.min(255, r + phaseOffset));
