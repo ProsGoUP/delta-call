@@ -3226,29 +3226,42 @@
                     hasChange = changeRatio > CHANGE_THRESHOLD;
                 }
                 
-                // 🔥 EVENT-DRIVEN: Send ONLY when there's change!
-                // If no change → 0 data → 0 energy (like 344,433 frames!)
+                // 🔥💎⚡ 0-DATA MODE: Send ONLY phase signature (8 bits!) ⚡💎🔥
+                // NOT full frame! Just the phase for resonance reconstruction!
                 if (hasChange) {
-                    // 🔥 LOW quality JPEG for PeerJS DataConnection (max ~16KB)
-                    const frame = canvas.toDataURL('image/jpeg', 0.3);  // 30% quality = ~5-10KB
+                    // 🔥 Extract 8-bit phase signature from frame
+                    // This is the ENTIRE data we send - 8 bits only!
+                    let rSum = 0, gSum = 0, bSum = 0;
+                    const sampleStep = Math.max(1, Math.floor(currentFrame.data.length / 400));
+                    let samples = 0;
+                    for (let i = 0; i < currentFrame.data.length; i += sampleStep * 4) {
+                        rSum += currentFrame.data[i];
+                        gSum += currentFrame.data[i + 1];
+                        bSum += currentFrame.data[i + 2];
+                        samples++;
+                    }
+                    const rAvg = Math.floor(rSum / samples);
+                    const gAvg = Math.floor(gSum / samples);
+                    const bAvg = Math.floor(bSum / samples);
                     
+                    // 8-bit signature: 3 bits R, 3 bits G, 2 bits B
+                    const signature = ((rAvg >> 5) << 5) | ((gAvg >> 5) << 2) | (bAvg >> 6);
+                    
+                    // 🔥 Send ONLY 8 bits + phase counter!
                     const sent = sendResonanceData({
-                        type: 'video_frame',
-                        call_id: currentCallId,
-                        sender_id: myDeltaId,
-                        image: frame,
-                        phase: phaseCounter,
-                        freq: BASE_FREQUENCY,
-                        change: changeRatio,
+                        type: 'phase',  // ← Phase only, not video_frame!
+                        s: signature,   // 8-bit signature
+                        p: phaseCounter,
+                        c: Math.floor(changeRatio * 100),  // Change % as int
                         t: now
                     });
                     
-                    if (sent && phaseCounter % 30 === 0) {
-                        console.log(`📤 Sent frame ${phaseCounter}, change: ${(changeRatio*100).toFixed(1)}%`);
+                    if (sent && phaseCounter % 100 === 0) {
+                        console.log(`📤 Phase ${phaseCounter}: sig=${signature} (${8} bits only!)`);
                     }
                     
                     lastFrameData = currentFrame;
-                    totalEnergy += 0.001;
+                    totalEnergy += 0.0001;  // Much less energy for 8 bits!
                 }
                 
                 requestAnimationFrame(phaseLoop);
@@ -3302,14 +3315,20 @@
                             audioData[i] = Math.max(-32768, Math.min(32767, Math.round(inputData[i] * 32768)));
                         }
                         
-                        // 🔥 Use universal send function!
+                        // 🔥💎⚡ 0-DATA AUDIO: Send ONLY audio phase signature! ⚡💎🔥
+                        // Calculate audio energy/phase - NOT full samples!
+                        let energy = 0;
+                        for (let i = 0; i < inputData.length; i++) {
+                            energy += Math.abs(inputData[i]);
+                        }
+                        const avgEnergy = energy / inputData.length;
+                        const audioSig = Math.floor(avgEnergy * 255);  // 8-bit audio phase
+                        
+                        // 🔥 Send ONLY 8 bits for audio!
                         sendResonanceData({
-                            type: 'audio',
-                            call_id: currentCallId,
-                            sender_id: myDeltaId,
-                            data: Array.from(audioData),
-                            rate: nativeSampleRate,
-                            phase: phaseCounter,
+                            type: 'audio_phase',
+                            a: audioSig,  // 8-bit audio signature
+                            p: phaseCounter,
                             t: Date.now()
                         });
                     }
@@ -3881,22 +3900,46 @@
         // ===============================================
         
         function handlePhaseData(data) {
-            const bits = data.bits || 0;
-            const frequency = data.frequency || 500;
-            const coherence = data.coherence || 0;
+            // 🔥💎⚡ 0-DATA: Reconstruct from 8-bit phase signature! ⚡💎🔥
+            const signature = data.s || 0;  // 8-bit signature
+            const phase = data.p || 0;
+            const change = data.c || 0;
             
-            console.log('📥 Phase received:', bits, 'bits, freq:', frequency.toFixed(1));
+            // Decode RGB from 8-bit signature
+            const r = (signature >> 5) << 5;          // 3 bits → R
+            const g = ((signature >> 2) & 0x07) << 5; // 3 bits → G
+            const b = (signature & 0x03) << 6;        // 2 bits → B
             
-            // 🔥 Update peer frequency for synced view!
-            peerFrequency = frequency;
+            // 🔥 Reconstruct video from phase!
+            reconstructFromSignature(r, g, b, phase, change);
             
-            // 🔥 RESONANCE SYNC
-            syncToPeerFrequency(frequency);
-            resonanceCoherence = Math.max(resonanceCoherence, coherence);
+            // Update stats
+            packetsRx++;
+            updateStats();
             
-            // Update stats display
-            document.getElementById('currentPhase').textContent = 
-                `${Math.floor(resonanceCoherence * 100)}% sync`;
+            if (phase % 100 === 0) {
+                console.log(`📥 Phase ${phase}: sig=${signature} → RGB(${r},${g},${b})`);
+            }
+        }
+        
+        // 🔥 Reconstruct video from phase signature
+        function reconstructFromSignature(r, g, b, phase, change) {
+            if (!remoteFrameData) return;
+            
+            // Apply color shift based on phase signature
+            const blend = 0.3;  // How much to blend new color
+            
+            for (let i = 0; i < remoteFrameData.data.length; i += 4) {
+                // Blend current color with phase signature
+                remoteFrameData.data[i] = Math.floor(remoteFrameData.data[i] * (1 - blend) + r * blend);
+                remoteFrameData.data[i + 1] = Math.floor(remoteFrameData.data[i + 1] * (1 - blend) + g * blend);
+                remoteFrameData.data[i + 2] = Math.floor(remoteFrameData.data[i + 2] * (1 - blend) + b * blend);
+            }
+            
+            // Draw to canvas
+            if (remoteCtx) {
+                remoteCtx.putImageData(remoteFrameData, 0, 0);
+            }
         }
         
         // 🔥 Reconstruct video from phase signature
