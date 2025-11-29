@@ -2163,7 +2163,15 @@
                     // If PeerJS media stream is active, keep using it
                     // DataConnection is for Phase Resonance DATA, not video!
                     console.log('📡 DataConnection ready, usingPeerJSStream:', usingPeerJSStream);
-                    setupResonanceSync();
+                    
+                    // 🔥 CRITICAL: Only setup resonance if we have localStream!
+                    // DataConnection can arrive BEFORE user clicks "Answer"!
+                    if (localStream) {
+                        setupResonanceSync();
+                    } else {
+                        console.log('⏳ Waiting for localStream before starting resonance...');
+                        // Will be started when answerPeerCall() is called
+                    }
                 }
                 
                 // 🔥 Handle connection close
@@ -2311,6 +2319,12 @@
                 
                 // 🔥 Answerer waits for DataConnection from caller via peer.on('connection')
                 // The caller opens the DataConnection, we receive it in initPeerJS()
+                
+                // 🔥 If DataConnection already arrived, start resonance now!
+                if (dataConnectionReady && peerDataConnection) {
+                    console.log('🔥 DataConnection already ready - starting resonance now!');
+                    setupResonanceSync();
+                }
                 
             } catch (err) {
                 console.error('❌ Media error:', err);
