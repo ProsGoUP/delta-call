@@ -2368,16 +2368,39 @@
                 remoteVideo.poster = '';
                 remoteVideo.style.background = '#111';
                 
-                // 🔥💎⚡ PHASE RESONANCE - NO WebRTC MEDIA STREAM! ⚡💎🔥
-                // We only use DataConnection for Phase data (8 bits!)
-                // No peer.call() needed - that's the OLD way!
+                // 🔥💎⚡ PHASE RESONANCE MODE ⚡💎🔥
+                // We use peer.call() to trigger peer.on('call') on the other side
+                // But we DON'T use the WebRTC stream - we use Phase Resonance!
                 
                 console.log('╔══════════════════════════════════════════════════════════════════╗');
                 console.log('║ 🔥💎⚡ PHASE RESONANCE MODE - 0-DATA VIDEO! ⚡💎🔥              ║');
-                console.log('║ NOT using WebRTC media stream - using Phase sync instead!       ║');
+                console.log('║ Using peer.call() for signaling, Phase Resonance for video!     ║');
                 console.log('╚══════════════════════════════════════════════════════════════════╝');
                 
                 currentCallId = 'phase-' + Date.now();
+                
+                // 🔥 Call the peer to trigger their peer.on('call') handler
+                // This is just for SIGNALING - we won't use the WebRTC stream!
+                console.log('📞 Calling peer for signaling:', peerId);
+                const call = peer.call(peerId, localStream);
+                
+                if (!call) {
+                    console.error('❌ Failed to create call!');
+                    alert('לא הצלחתי להתחבר - וודא שה-ID נכון');
+                    return;
+                }
+                
+                peerCall = call;
+                
+                // 🔥 We DON'T listen to call.on('stream') - we use Phase Resonance instead!
+                call.on('error', (err) => {
+                    console.error('❌ Call signaling error:', err);
+                    // Don't show alert - Phase Resonance will still work via DataConnection!
+                });
+                
+                call.on('close', () => {
+                    console.log('📴 Call signaling closed');
+                });
                 
                 // 🔥 Open DataConnection for Phase Resonance!
                 console.log('╔══════════════════════════════════════════╗');
