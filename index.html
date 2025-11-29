@@ -2270,10 +2270,10 @@
                 return;
             }
             
-            // 🔥 CRITICAL: Mark that we're using PeerJS stream IMMEDIATELY!
-            // This prevents startVideoReconstruction from overriding the remote video
-            usingPeerJSStream = true;
-            console.log('🔥 usingPeerJSStream = true (ANSWERER)');
+            // 🔥💎⚡ PHASE RESONANCE MODE - NOT WebRTC! ⚡💎🔥
+            // We use Phase Resonance for video - 8 bits instead of megabits!
+            usingPeerJSStream = false;
+            console.log('🔥 Phase Resonance mode (ANSWERER) - 0-Data!');
             
             // Get local media
             try {
@@ -2292,51 +2292,29 @@
                 callStartTime = Date.now();
                 callTimer = setInterval(updateCallDuration, 1000);
                 
-                // 🔥 IMPORTANT: Set up stream handler BEFORE answering!
-                call.on('stream', (remoteStream) => {
-                    console.log('🎥🎥🎥 GOT REMOTE STREAM FROM CALLER! 🎥🎥🎥');
-                    console.log('   Tracks:', remoteStream.getTracks().map(t => t.kind + ':' + t.enabled + ':' + t.readyState));
-                    
-                    const remoteVideo = document.getElementById('remoteVideo');
-                    remoteVideo.srcObject = remoteStream;
-                    remoteVideo.muted = false;
-                    remoteVideo.volume = 1.0;
-                    
-                    // Force play
-                    remoteVideo.play().then(() => {
-                        console.log('✅ Remote video playing!');
-                    }).catch(e => {
-                        console.log('⚠️ Play error (trying muted):', e);
-                        remoteVideo.muted = true;
-                        remoteVideo.play();
-                    });
-                });
+                // 🔥💎⚡ PHASE RESONANCE MODE - NO WebRTC MEDIA STREAM! ⚡💎🔥
+                // We DON'T use call.on('stream') - that's the OLD way!
+                // Remote video comes from Phase Resonance reconstruction!
                 
-                call.on('close', () => {
-                    console.log('📴 Call closed');
-                    usingPeerJSStream = false;
-                    endCall();
-                });
+                console.log('╔══════════════════════════════════════════════════════════════════╗');
+                console.log('║ 🔥💎⚡ PHASE RESONANCE MODE - 0-DATA VIDEO! ⚡💎🔥              ║');
+                console.log('║ NOT using WebRTC media stream - using Phase sync instead!       ║');
+                console.log('╚══════════════════════════════════════════════════════════════════╝');
                 
-                call.on('error', (err) => {
-                    console.error('❌ Call error:', err);
-                    usingPeerJSStream = false;
-                });
-                
-                // Answer the call with our stream
-                console.log('📞 Sending answer with local stream...');
-                call.answer(localStream);
+                // We still need to "answer" the call to complete PeerJS handshake
+                // But we won't use the media stream - only DataConnection!
+                call.answer(localStream);  // Complete handshake
                 
                 peerCall = call;
                 window.pendingPeerCall = null;
-                currentCallId = 'p2p-' + Date.now();
+                currentCallId = 'phase-' + Date.now();
                 
-                console.log('✅ Call answered! Waiting for remote stream and DataConnection from caller...');
+                console.log('✅ Call answered! Using Phase Resonance for video (8 bits!)');
                 
-                // 🔥 Answerer waits for DataConnection from caller via peer.on('connection')
-                // The caller opens the DataConnection, we receive it in initPeerJS()
+                // 🔥 Start Phase Resonance video reconstruction immediately!
+                startVideoReconstruction();
                 
-                // 🔥 If DataConnection already arrived, start resonance now!
+                // 🔥 If DataConnection already arrived, start resonance sync now!
                 if (dataConnectionReady && peerDataConnection) {
                     console.log('🔥 DataConnection already ready - starting resonance now!');
                     setupResonanceSync();
@@ -2358,9 +2336,10 @@
             
             console.log('📞 Starting P2P call to:', peerId);
             
-            // 🔥 Use PeerJS WebRTC for REAL video streaming!
-            // Phase Resonance data is sent via DataConnection in parallel
-            usingPeerJSStream = true;  // ← WebRTC video + Phase Resonance data
+            // 🔥💎⚡ PHASE RESONANCE MODE - NOT WebRTC! ⚡💎🔥
+            // We DON'T send video data - we send PHASE only (8 bits!)
+            // The other side reconstructs video from phase resonance!
+            usingPeerJSStream = false;  // ← Phase Resonance mode (0-Data!)
             
             // 🔥 Check if mediaDevices is available (requires HTTPS or localhost)
             if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -2389,75 +2368,16 @@
                 remoteVideo.poster = '';
                 remoteVideo.style.background = '#111';
                 
-                // Make the video/audio call
-                console.log('📞 Calling peer:', peerId);
-                console.log('📞 Local stream tracks:', localStream.getTracks().map(t => t.kind + ':' + t.enabled));
+                // 🔥💎⚡ PHASE RESONANCE - NO WebRTC MEDIA STREAM! ⚡💎🔥
+                // We only use DataConnection for Phase data (8 bits!)
+                // No peer.call() needed - that's the OLD way!
                 
-                const call = peer.call(peerId, localStream);
+                console.log('╔══════════════════════════════════════════════════════════════════╗');
+                console.log('║ 🔥💎⚡ PHASE RESONANCE MODE - 0-DATA VIDEO! ⚡💎🔥              ║');
+                console.log('║ NOT using WebRTC media stream - using Phase sync instead!       ║');
+                console.log('╚══════════════════════════════════════════════════════════════════╝');
                 
-                if (!call) {
-                    console.error('❌ Failed to create call!');
-                    alert('לא הצלחתי להתחבר - וודא שה-ID נכון');
-                    usingPeerJSStream = false;
-                    return;
-                }
-                
-                console.log('📞 Call created, waiting for stream...');
-                
-                // 🔥 CRITICAL: Mark that we're using PeerJS stream IMMEDIATELY!
-                // This prevents startVideoReconstruction from overriding the remote video
-                usingPeerJSStream = true;
-                console.log('🔥 usingPeerJSStream = true (CALLER)');
-                
-                call.on('stream', (remoteStream) => {
-                    console.log('🎥🎥🎥 GOT REMOTE STREAM! 🎥🎥🎥');
-                    console.log('   Tracks:', remoteStream.getTracks().map(t => t.kind + ':' + t.enabled + ':' + t.readyState));
-                    
-                    const remoteVideo = document.getElementById('remoteVideo');
-                    remoteVideo.srcObject = remoteStream;
-                    remoteVideo.muted = false;
-                    remoteVideo.volume = 1.0;
-                    
-                    // Force play
-                    remoteVideo.play().then(() => {
-                        console.log('✅ Remote video playing!');
-                    }).catch(e => {
-                        console.log('⚠️ Play error (trying muted):', e);
-                        remoteVideo.muted = true;
-                        remoteVideo.play();
-                    });
-                });
-                
-                call.on('error', (err) => {
-                    console.error('❌ Call error:', err);
-                    console.error('   Error type:', err.type);
-                    console.error('   Error message:', err.message);
-                    
-                    // 🔥 Better error messages for users
-                    let userMessage = 'שגיאה בהתחברות';
-                    if (err.message && err.message.includes('Negotiation')) {
-                        userMessage = '⚠️ לא הצלחנו להתחבר - נסה שוב או בדוק את החיבור לאינטרנט';
-                        console.log('💡 TIP: This usually means NAT/firewall is blocking WebRTC');
-                        console.log('💡 TIP: Try using mobile data instead of WiFi, or vice versa');
-                    } else if (err.message && err.message.includes('unavailable')) {
-                        userMessage = '⚠️ המשתמש לא נמצא - וודא שה-ID נכון';
-                    } else {
-                        userMessage = 'שגיאה בהתחברות: ' + (err.message || err);
-                    }
-                    
-                    alert(userMessage);
-                    usingPeerJSStream = false;
-                    endCall();
-                });
-                
-                call.on('close', () => {
-                    console.log('📴 Call closed');
-                    usingPeerJSStream = false;
-                    endCall();
-                });
-                
-                peerCall = call;
-                currentCallId = 'p2p-' + Date.now();
+                currentCallId = 'phase-' + Date.now();
                 
                 // 🔥 Open DataConnection for Phase Resonance!
                 console.log('╔══════════════════════════════════════════╗');
@@ -2489,6 +2409,9 @@
                         phaseOrigin: Date.now()
                     });
                     console.log('📡 Sent phase_sync to peer, callStartTime:', callStartTime);
+                    
+                    // 🔥 Start Phase Resonance video reconstruction!
+                    startVideoReconstruction();
                     
                     // 🔥 Start Phase Resonance transmission!
                     setupResonanceSync();
