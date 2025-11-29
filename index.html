@@ -1140,6 +1140,13 @@
             const call = window.pendingPeerCall;
             console.log('📞 Answering P2P call from:', call.peer);
             
+            // 🔥 Check if mediaDevices is available (requires HTTPS or localhost)
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                console.error('❌ mediaDevices not available - need HTTPS!');
+                alert('⚠️ נדרש HTTPS לגישה למצלמה!\n\nהשתמש ב:\n• https://prosgoup.github.io/delta-call/\n• או localhost');
+                return;
+            }
+            
             // 🔥 CRITICAL: Mark that we're using PeerJS stream IMMEDIATELY!
             // This prevents startVideoReconstruction from overriding the remote video
             usingPeerJSStream = true;
@@ -1225,6 +1232,13 @@
             // 🔥 PHASE RESONANCE MODE: Don't use PeerJS video stream!
             // We'll use our Phase Resonance data channel for TRUE 0-DATA video!
             usingPeerJSStream = false;  // ← Phase Resonance במקום WebRTC video
+            
+            // 🔥 Check if mediaDevices is available (requires HTTPS or localhost)
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                console.error('❌ mediaDevices not available - need HTTPS!');
+                alert('⚠️ נדרש HTTPS לגישה למצלמה!\n\nהשתמש ב:\n• https://prosgoup.github.io/delta-call/\n• או localhost');
+                return;
+            }
             
             try {
                 // Get local media
