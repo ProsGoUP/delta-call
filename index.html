@@ -619,11 +619,26 @@
         // This enables our mesh network - any user with internet is a gateway!
         const isSecure = window.location.protocol === 'https:';
         const currentHost = window.location.host; // Gets host:port dynamically
-        const SERVER_URL = `${window.location.protocol}//${currentHost}`;
-        const WS_URL = `${isSecure ? 'wss:' : 'ws:'}//${currentHost}`;
+        
+        // 🔥💎⚡ ΔCLOUD SIGNALING - OUR OWN SERVER! ⚡💎🔥
+        // If we're on GitHub Pages or other static host, use our IPv6 server!
+        const isStaticHost = currentHost.includes('github.io') || 
+                            currentHost.includes('netlify') ||
+                            currentHost.includes('vercel');
+        
+        // Our ΔCLOUD server - accessible via IPv6 from anywhere!
+        const DELTA_CLOUD_IPV6 = '2a0d:6fc2:41c9:b100:b999:bc7f:9c65:38';
+        const DELTA_CLOUD_PORT = 8081;
+        const DELTA_CLOUD_URL = `http://[${DELTA_CLOUD_IPV6}]:${DELTA_CLOUD_PORT}`;
+        const DELTA_CLOUD_WS = `ws://[${DELTA_CLOUD_IPV6}]:${DELTA_CLOUD_PORT}`;
+        
+        // Use local server if available, otherwise use ΔCLOUD
+        const SERVER_URL = isStaticHost ? DELTA_CLOUD_URL : `${window.location.protocol}//${currentHost}`;
+        const WS_URL = isStaticHost ? DELTA_CLOUD_WS : `${isSecure ? 'wss:' : 'ws:'}//${currentHost}`;
         
         console.log('🔥 ΔNET Gateway:', SERVER_URL);
         console.log('🔌 WebSocket Gateway:', WS_URL);
+        console.log('☁️ ΔCLOUD Mode:', isStaticHost ? 'YES (using IPv6)' : 'NO (local server)');
         
         // ΔProtocol State
         let myDeltaId = null;
@@ -2910,16 +2925,22 @@
                 return;
             }
             
-            // 🔥 Use PeerJS for P2P call - NO PORT FORWARD NEEDED!
-            if (peer && peer.open) {
-                console.log('🔥 Using PeerJS P2P (no port forward needed!)');
-                // startPeerCall opens video screen immediately - don't override!
+            // 🔥💎⚡ ΔCLOUD FIRST! Our server handles signaling! ⚡💎🔥
+            // WebSocket is ALWAYS preferred - it uses OUR server!
+            if (webSocket && webSocket.readyState === WebSocket.OPEN) {
+                console.log('🔥 Using ΔCLOUD WebSocket signaling!');
+                // Continue to WebSocket signaling below
+            } else if (peer && peer.open) {
+                // Fallback to PeerJS if WebSocket not available
+                console.log('⚠️ ΔCLOUD not available, using PeerJS fallback...');
                 await startPeerCall(targetId);
+                return;
+            } else {
+                alert('❌ לא מחובר לשרת!\n\nנסה לרענן את הדף.');
                 return;
             }
             
-            // Fallback to WebSocket signaling
-            console.log('⚠️ PeerJS not available, using WebSocket fallback');
+            console.log('📞 Starting call via ΔCLOUD...');
             
             // Create call packet
             const callPacket = new ΔPacket('call_start', {
@@ -4321,24 +4342,19 @@
         }
         
         // ========================================
-        // Initialize - P2P ONLY! NO SERVER NEEDED!
+        // Initialize - ΔCLOUD + P2P!
         // ========================================
         
         initDeltaId();
         
-        // 🔥 P2P Mode - No WebSocket needed for basic calls!
-        // WebSocket is optional - only for our own server
-        const isLocalServer = window.location.hostname === 'localhost' || 
-                             window.location.hostname === '192.168.1.115' ||
-                             window.location.hostname.includes('deltaworlds');
+        // 🔥💎⚡ ALWAYS connect to ΔCLOUD WebSocket! ⚡💎🔥
+        // Our server handles signaling for ALL users!
+        console.log('🌐 Connecting to ΔCLOUD...');
+        console.log('   Server:', SERVER_URL);
+        console.log('   WebSocket:', WS_URL);
         
-        if (isLocalServer) {
-            console.log('🏠 Local server detected - connecting WebSocket...');
-            connectWebSocket();
-        } else {
-            console.log('🌐 Public mode - P2P only (no WebSocket needed!)');
-            updateStatus('מחובר לרשת Δ (P2P)', 'connected');
-        }
+        // Try to connect to our ΔCLOUD server
+        connectWebSocket();
         
         // Subscribe to FieldBus events
         fieldBus.subscribe('all', (packet) => {
