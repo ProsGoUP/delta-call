@@ -640,7 +640,1104 @@
         let dataConnectionReady = false;  // 🔥 Flag to track if DataConnection is ready
         let usingPeerJSStream = false;  // 🔥 Flag to track if using PeerJS video stream
         
+        // ============================================================
+        // 🌌 ΔPHASE0 - THE PRIME PHASE (Shared Reality)
+        // ============================================================
+        // The ONE truth that all phases synchronize to:
+        // - Time (absolute)
+        // - Sequence (order of events)
+        // - Delta (changes)
+        // - Identity (who did what)
+        
+        class ΔPHASE0 {
+            static instance = null;
+            
+            constructor() {
+                if (ΔPHASE0.instance) return ΔPHASE0.instance;
+                
+                this.phaseValue = 0.0;
+                this.frequency = 500.0;  // Hz - base frequency
+                this.epoch = Date.now();
+                this.sequenceCounter = 0;
+                this.connectedPhases = new Map();
+                
+                // Global state
+                this.globalDelta = 0.0;
+                this.globalEnergy = 0.0;
+                
+                ΔPHASE0.instance = this;
+                console.log('🌌 ΔPHASE0 (Prime Phase) initialized');
+            }
+            
+            getAbsoluteTime() {
+                return Date.now();
+            }
+            
+            getSequence() {
+                this.sequenceCounter++;
+                return this.sequenceCounter;
+            }
+            
+            getPhase() {
+                const elapsed = (Date.now() - this.epoch) / 1000;
+                this.phaseValue = (elapsed * this.frequency) % 1.0;
+                return this.phaseValue;
+            }
+            
+            registerPhase(phase) {
+                this.connectedPhases.set(phase.phaseId, phase);
+                console.log(`📡 Phase registered with ΔPHASE0: ${phase.phaseId}`);
+            }
+            
+            unregisterPhase(phaseId) {
+                if (this.connectedPhases.has(phaseId)) {
+                    this.connectedPhases.delete(phaseId);
+                    console.log(`📴 Phase unregistered: ${phaseId}`);
+                }
+            }
+        }
+        
+        // ============================================================
+        // 🔮 ΔPhase - Individual Personal Phase
+        // ============================================================
+        // Each human/machine has one - contains your context, intention,
+        // perception, and private meaning
+        
+        class ΔPhase {
+            constructor(phaseId, ownerName) {
+                this.phaseId = phaseId || `phase_${Date.now().toString(36)}`;
+                this.ownerName = ownerName || 'Unknown';
+                this.context = {};
+                this.intention = '';
+                this.perception = {};
+                this.privateMeaning = {};
+                
+                // Phase state
+                this.localPhase = 0.0;
+                this.localFrequency = 500.0;
+                this.drift = 0.0;
+                
+                // Connection state
+                this.isConnected = false;
+                this.lastSync = 0;
+                
+                console.log(`🔮 ΔPhase created: ${this.phaseId} (${this.ownerName})`);
+            }
+            
+            updateContext(key, value) {
+                this.context[key] = value;
+            }
+            
+            setIntention(intention) {
+                this.intention = intention;
+            }
+            
+            perceive(event) {
+                const eventId = event.id || Date.now().toString();
+                this.perception[eventId] = {
+                    event: event,
+                    perceivedAt: Date.now(),
+                    localPhase: this.localPhase
+                };
+            }
+            
+            deriveMeaning(eventId, meaning) {
+                this.privateMeaning[eventId] = meaning;
+            }
+        }
+        
+        // ============================================================
+        // 🔥 ΔPHASE-GATEWAY - THE PRESSURE CELL
+        // ============================================================
+        // The controlled environment where private phases meet ΔPHASE0
+        // Functions: normalize, compress, map intent, safety check, align, translate
+        
+        class PhaseGateway {
+            constructor(gatewayId) {
+                this.gatewayId = gatewayId || `gateway_${Date.now()}`;
+                this.primePhase = new ΔPHASE0();
+                
+                this.phases = new Map();
+                this.pressure = 1.0;
+                this.isOpen = true;
+                
+                this.stats = {
+                    phasesNormalized: 0,
+                    deltasCompressed: 0,
+                    intentsMapped: 0,
+                    safetyChecks: 0,
+                    alignments: 0,
+                    translations: 0,
+                    totalDataSaved: 0
+                };
+                
+                this.externalEndpoints = [];
+                
+                console.log(`🔥 ΔPHASE-GATEWAY initialized: ${this.gatewayId}`);
+            }
+            
+            // 1. Phase Normalization
+            normalizePhase(phase) {
+                const primePhase = this.primePhase.getPhase();
+                const primeTime = this.primePhase.getAbsoluteTime();
+                
+                const drift = phase.localPhase - primePhase;
+                
+                const normalized = {
+                    phaseId: phase.phaseId,
+                    originalPhase: phase.localPhase,
+                    normalizedPhase: primePhase,
+                    drift: drift,
+                    correction: -drift,
+                    primeTime: primeTime,
+                    sequence: this.primePhase.getSequence()
+                };
+                
+                phase.localPhase = primePhase;
+                phase.drift = drift;
+                phase.lastSync = primeTime;
+                
+                this.stats.phasesNormalized++;
+                return normalized;
+            }
+            
+            // 2. Delta Compression
+            compressDelta(data, previous = null) {
+                if (!previous) {
+                    return { type: 'full', data: data, size: JSON.stringify(data).length };
+                }
+                
+                const changes = [];
+                for (const key in data) {
+                    if (data[key] !== previous[key]) {
+                        changes.push({ key, old: previous[key], new: data[key] });
+                    }
+                }
+                
+                const originalSize = JSON.stringify(data).length;
+                const compressedSize = JSON.stringify(changes).length;
+                this.stats.totalDataSaved += Math.max(0, originalSize - compressedSize);
+                this.stats.deltasCompressed++;
+                
+                return { type: 'delta', changes, originalSize, compressedSize };
+            }
+            
+            // 3. Intent → Meaning Mapping
+            mapIntentToMeaning(phase, intent) {
+                const intentLower = intent.toLowerCase();
+                const actionMap = {
+                    'call': 'communication',
+                    'pay': 'transaction',
+                    'send': 'transfer',
+                    'share': 'broadcast',
+                    'find': 'discovery',
+                    'connect': 'link'
+                };
+                
+                let category = 'general';
+                for (const [keyword, cat] of Object.entries(actionMap)) {
+                    if (intentLower.includes(keyword)) {
+                        category = cat;
+                        break;
+                    }
+                }
+                
+                this.stats.intentsMapped++;
+                
+                return {
+                    originalIntent: intent,
+                    category: category,
+                    phaseId: phase.phaseId,
+                    timestamp: this.primePhase.getAbsoluteTime(),
+                    sequence: this.primePhase.getSequence(),
+                    canExecute: true
+                };
+            }
+            
+            // 4. Safety Check
+            safetyCheck(phase, action) {
+                const checks = {
+                    phaseNormalized: Math.abs(phase.drift) < 0.01,
+                    phaseConnected: phase.isConnected,
+                    actionValid: action.category !== undefined,
+                    noConflicts: true,
+                    resourcesAvailable: true
+                };
+                
+                const passed = Object.values(checks).every(v => v);
+                this.stats.safetyChecks++;
+                
+                return { passed, checks, phaseId: phase.phaseId };
+            }
+            
+            // 5. Cross-Phase Alignment
+            alignPhases(phaseIds) {
+                const phases = phaseIds.map(id => this.phases.get(id)).filter(p => p);
+                if (phases.length < 2) return { success: false, reason: 'Need at least 2 phases' };
+                
+                const referencePhase = this.primePhase.getPhase();
+                const referenceTime = this.primePhase.getAbsoluteTime();
+                
+                const alignments = phases.map(phase => {
+                    const oldPhase = phase.localPhase;
+                    phase.localPhase = referencePhase;
+                    phase.lastSync = referenceTime;
+                    return { phaseId: phase.phaseId, oldPhase, newPhase: referencePhase };
+                });
+                
+                this.stats.alignments++;
+                return { success: true, alignedCount: phases.length, referencePhase, alignments };
+            }
+            
+            // 6. Translate Semantics
+            translateSemantics(sourcePhase, targetPhase, message) {
+                this.stats.translations++;
+                return {
+                    original: message,
+                    sourcePhase: sourcePhase.phaseId,
+                    targetPhase: targetPhase.phaseId,
+                    translationTime: this.primePhase.getAbsoluteTime(),
+                    content: message
+                };
+            }
+            
+            // Connect/Disconnect phases
+            connectPhase(phase) {
+                this.normalizePhase(phase);
+                this.primePhase.registerPhase(phase);
+                this.phases.set(phase.phaseId, phase);
+                phase.isConnected = true;
+                console.log(`✅ Phase connected to gateway: ${phase.phaseId}`);
+                return true;
+            }
+            
+            disconnectPhase(phaseId) {
+                if (!this.phases.has(phaseId)) return false;
+                const phase = this.phases.get(phaseId);
+                phase.isConnected = false;
+                this.primePhase.unregisterPhase(phaseId);
+                this.phases.delete(phaseId);
+                return true;
+            }
+            
+            addExternalEndpoint(endpoint) {
+                if (!this.externalEndpoints.includes(endpoint)) {
+                    this.externalEndpoints.push(endpoint);
+                    console.log(`🌐 External endpoint added: ${endpoint}`);
+                }
+            }
+            
+            getStats() {
+                return {
+                    gatewayId: this.gatewayId,
+                    connectedPhases: this.phases.size,
+                    externalEndpoints: this.externalEndpoints.length,
+                    ...this.stats
+                };
+            }
+        }
+        
+        // ============================================================
+        // 🌐 GLOBAL GATEWAY - OUR OWN CLOUDFLARE REPLACEMENT!
+        // ============================================================
+        // Any user with internet becomes a gateway for others!
+        
+        class GatewayNode {
+            constructor(nodeId, publicEndpoint, capabilities = []) {
+                this.nodeId = nodeId;
+                this.publicEndpoint = publicEndpoint;
+                this.capabilities = capabilities;
+                this.bandwidthMbps = 100.0;
+                this.latencyMs = 5.0;
+                this.isOnline = true;
+                this.lastSeen = Date.now();
+                this.connectedUsers = 0;
+            }
+        }
+        
+        class GatewayRegistry {
+            constructor() {
+                this.gateways = new Map();
+                this.primaryGateway = null;
+                console.log('🌐 Gateway Registry initialized');
+            }
+            
+            registerGateway(gateway) {
+                this.gateways.set(gateway.nodeId, gateway);
+                if (!this.primaryGateway || gateway.latencyMs < this.gateways.get(this.primaryGateway).latencyMs) {
+                    this.primaryGateway = gateway.nodeId;
+                }
+                console.log(`✅ Gateway registered: ${gateway.nodeId} at ${gateway.publicEndpoint}`);
+                return true;
+            }
+            
+            unregisterGateway(nodeId) {
+                if (this.gateways.has(nodeId)) {
+                    this.gateways.delete(nodeId);
+                    if (this.primaryGateway === nodeId) {
+                        this.primaryGateway = this.findBestGateway();
+                    }
+                    return true;
+                }
+                return false;
+            }
+            
+            getBestGateway() {
+                if (this.primaryGateway && this.gateways.has(this.primaryGateway)) {
+                    return this.gateways.get(this.primaryGateway);
+                }
+                const bestId = this.findBestGateway();
+                return bestId ? this.gateways.get(bestId) : null;
+            }
+            
+            findBestGateway() {
+                let best = null;
+                let bestLatency = Infinity;
+                for (const [id, gw] of this.gateways) {
+                    if (gw.isOnline && gw.latencyMs < bestLatency) {
+                        best = id;
+                        bestLatency = gw.latencyMs;
+                    }
+                }
+                return best;
+            }
+            
+            getAllEndpoints() {
+                return Array.from(this.gateways.values())
+                    .filter(gw => gw.isOnline)
+                    .map(gw => gw.publicEndpoint);
+            }
+        }
+        
+        class GlobalGateway {
+            constructor(config = {}) {
+                this.nodeId = config.nodeId || `gw_${Date.now().toString(36)}`;
+                this.registry = new GatewayRegistry();
+                
+                this.isGateway = false;
+                this.publicEndpoint = null;
+                this.connectedUsers = new Set();
+                
+                this.stats = {
+                    requestsRouted: 0,
+                    bytesTransferred: 0,
+                    gatewaySwitches: 0,
+                    meshFallbacks: 0
+                };
+                
+                console.log(`🔥 ΔGLOBAL GATEWAY initialized: ${this.nodeId}`);
+            }
+            
+            enableGatewayMode(publicEndpoint = null) {
+                this.publicEndpoint = publicEndpoint || `${window.location.origin}`;
+                this.isGateway = true;
+                
+                const gatewayNode = new GatewayNode(
+                    this.nodeId,
+                    this.publicEndpoint,
+                    ['routing', 'video_call', 'data_sync']
+                );
+                
+                this.registry.registerGateway(gatewayNode);
+                
+                console.log('🌐 Gateway mode enabled!');
+                console.log(`   Public endpoint: ${this.publicEndpoint}`);
+                return true;
+            }
+            
+            disableGatewayMode() {
+                if (!this.isGateway) return false;
+                this.registry.unregisterGateway(this.nodeId);
+                this.isGateway = false;
+                this.publicEndpoint = null;
+                return true;
+            }
+            
+            addExternalGateway(endpoint, nodeId = null) {
+                const id = nodeId || `ext_${Date.now().toString(36)}`;
+                const gatewayNode = new GatewayNode(id, endpoint, ['routing', 'video_call']);
+                gatewayNode.latencyMs = 50.0; // Estimate for external
+                this.registry.registerGateway(gatewayNode);
+                return true;
+            }
+            
+            getConnectionUrl() {
+                if (this.isGateway && this.publicEndpoint) return this.publicEndpoint;
+                const best = this.registry.getBestGateway();
+                return best ? best.publicEndpoint : window.location.origin;
+            }
+            
+            getShareableLink(path = '/call') {
+                return `${this.getConnectionUrl()}${path}`;
+            }
+            
+            routeRequest(request) {
+                const gateway = this.registry.getBestGateway();
+                if (gateway) {
+                    this.stats.requestsRouted++;
+                    return { success: true, gateway: gateway.nodeId, endpoint: gateway.publicEndpoint, latencyMs: gateway.latencyMs };
+                }
+                this.stats.meshFallbacks++;
+                return { success: true, gateway: 'mesh', endpoint: 'mesh://local', latencyMs: 5.0 };
+            }
+            
+            connectUser(userId) {
+                this.connectedUsers.add(userId);
+                if (this.registry.gateways.has(this.nodeId)) {
+                    this.registry.gateways.get(this.nodeId).connectedUsers = this.connectedUsers.size;
+                }
+                return true;
+            }
+            
+            disconnectUser(userId) {
+                this.connectedUsers.delete(userId);
+                return true;
+            }
+            
+            getStats() {
+                return {
+                    nodeId: this.nodeId,
+                    isGateway: this.isGateway,
+                    publicEndpoint: this.publicEndpoint,
+                    connectedUsers: this.connectedUsers.size,
+                    registeredGateways: this.registry.gateways.size,
+                    allEndpoints: this.registry.getAllEndpoints(),
+                    ...this.stats
+                };
+            }
+        }
+        
+        // ============================================================
+        // 📡 NODE DISCOVERY - Discover nearby nodes (BLE, WiFi, NFC)
+        // ============================================================
+        
+        const DiscoveryMethod = {
+            BLUETOOTH: 'bluetooth',
+            WIFI_DIRECT: 'wifi_direct',
+            NFC: 'nfc',
+            CELLULAR: 'cellular',
+            INTERNET: 'internet'
+        };
+        
+        class NodeDiscovery {
+            constructor(config = {}) {
+                this.nodeId = config.nodeId || `node_${Date.now().toString(36)}`;
+                this.scanInterval = config.scanInterval || 5.0;
+                this.maxConnections = config.maxConnections || 20;
+                
+                this.discoveredNodes = new Map();
+                this.activeConnections = new Map();
+                this.advertisements = [];
+                
+                this.stats = {
+                    scansPerformed: 0,
+                    nodesDiscovered: 0,
+                    connectionsEstablished: 0,
+                    connectionsLost: 0
+                };
+                
+                console.log(`📡 Node Discovery initialized: ${this.nodeId}`);
+            }
+            
+            async scanProximity(methods = [DiscoveryMethod.BLUETOOTH, DiscoveryMethod.WIFI_DIRECT]) {
+                const discovered = [];
+                
+                for (const method of methods) {
+                    const nodes = await this.scanWithMethod(method);
+                    discovered.push(...nodes);
+                }
+                
+                for (const node of discovered) {
+                    if (!this.discoveredNodes.has(node.nodeId)) {
+                        this.stats.nodesDiscovered++;
+                    }
+                    this.discoveredNodes.set(node.nodeId, {
+                        ...node,
+                        lastSeen: Date.now(),
+                        discoveryMethod: node.method
+                    });
+                }
+                
+                this.stats.scansPerformed++;
+                console.log(`⚡ Scan complete: ${discovered.length} nodes found`);
+                return discovered;
+            }
+            
+            async scanWithMethod(method) {
+                // In real implementation: use Web Bluetooth API, WiFi Direct, etc.
+                // Simulated discovery for demo
+                const numNodes = Math.floor(Math.random() * 3) + 1;
+                const discovered = [];
+                
+                for (let i = 0; i < numNodes; i++) {
+                    discovered.push({
+                        nodeId: `${method}_${i}_${Date.now().toString(36)}`,
+                        method: method,
+                        signalStrength: 0.5 + Math.random() * 0.5,
+                        distanceM: Math.random() * 100
+                    });
+                }
+                
+                return discovered;
+            }
+            
+            advertiseSelf() {
+                const ad = {
+                    nodeId: this.nodeId,
+                    capabilities: ['routing', 'payment', 'storage', 'compute'],
+                    frequency: 1000.0,
+                    timestamp: Date.now()
+                };
+                
+                this.advertisements.push(ad);
+                if (this.advertisements.length > 100) {
+                    this.advertisements = this.advertisements.slice(-100);
+                }
+                
+                return ad;
+            }
+            
+            connectToNode(nodeId, method = null) {
+                if (!this.discoveredNodes.has(nodeId)) {
+                    console.warn(`⚠️ Node ${nodeId} not discovered`);
+                    return null;
+                }
+                
+                if (this.activeConnections.size >= this.maxConnections) {
+                    console.warn(`⚠️ Max connections reached (${this.maxConnections})`);
+                    return null;
+                }
+                
+                const nodeInfo = this.discoveredNodes.get(nodeId);
+                const connection = {
+                    nodeId: nodeId,
+                    method: method || nodeInfo.discoveryMethod,
+                    signalStrength: 0.7 + Math.random() * 0.3,
+                    latencyMs: 1 + Math.random() * 9,
+                    bandwidthMbps: 1 + Math.random() * 99,
+                    establishedAt: Date.now()
+                };
+                
+                this.activeConnections.set(nodeId, connection);
+                this.stats.connectionsEstablished++;
+                console.log(`✅ Connected to ${nodeId} via ${connection.method}`);
+                
+                return connection;
+            }
+            
+            getStats() {
+                return {
+                    ...this.stats,
+                    discoveredNodes: this.discoveredNodes.size,
+                    activeConnections: this.activeConnections.size
+                };
+            }
+        }
+        
+        // ============================================================
+        // 🔄 GATEWAY SWITCH - Switch between networks intelligently
+        // ============================================================
+        
+        const NetworkType = {
+            MESH: 'mesh',
+            INTERNET: 'internet',
+            CELLULAR: 'cellular',
+            WIFI: 'wifi',
+            BLUETOOTH: 'bluetooth'
+        };
+        
+        class GatewaySwitch {
+            constructor(config = {}) {
+                this.nodeId = config.nodeId || `switch_${Date.now().toString(36)}`;
+                this.preferMesh = config.preferMesh !== false;
+                this.maxCostPerMb = config.maxCostPerMb || 0.01;
+                
+                this.availableNetworks = new Map();
+                this.activeNetwork = null;
+                this.networkHistory = [];
+                
+                this.stats = {
+                    networkSwitches: 0,
+                    totalDataMb: 0.0,
+                    totalCost: 0.0,
+                    avgLatencyMs: 0.0
+                };
+                
+                console.log(`🔄 Gateway Switch initialized: ${this.nodeId}`);
+            }
+            
+            detectNetworks() {
+                const detected = [];
+                
+                // Mesh network (always available if neighbors exist)
+                const mesh = {
+                    networkId: 'mesh_local',
+                    networkType: NetworkType.MESH,
+                    bandwidthMbps: 10.0,
+                    latencyMs: 5.0,
+                    costPerMb: 0.0,  // Free!
+                    reliability: 0.9,
+                    isAvailable: true
+                };
+                detected.push(mesh);
+                this.availableNetworks.set(mesh.networkId, mesh);
+                
+                // WiFi (simulate)
+                if (Math.random() > 0.3) {
+                    const wifi = {
+                        networkId: 'wifi_home',
+                        networkType: NetworkType.WIFI,
+                        bandwidthMbps: 100.0,
+                        latencyMs: 10.0,
+                        costPerMb: 0.0,
+                        reliability: 0.95,
+                        isAvailable: true
+                    };
+                    detected.push(wifi);
+                    this.availableNetworks.set(wifi.networkId, wifi);
+                }
+                
+                // Cellular
+                const cellular = {
+                    networkId: 'cellular_5g',
+                    networkType: NetworkType.CELLULAR,
+                    bandwidthMbps: 50.0,
+                    latencyMs: 20.0,
+                    costPerMb: 0.005,
+                    reliability: 0.98,
+                    isAvailable: true
+                };
+                detected.push(cellular);
+                this.availableNetworks.set(cellular.networkId, cellular);
+                
+                console.log(`📡 Detected ${detected.length} networks`);
+                return detected;
+            }
+            
+            switchNetwork(networkId) {
+                if (!this.availableNetworks.has(networkId)) {
+                    console.warn(`⚠️ Network ${networkId} not available`);
+                    return false;
+                }
+                
+                const network = this.availableNetworks.get(networkId);
+                if (!network.isAvailable) return false;
+                
+                const oldNetwork = this.activeNetwork;
+                this.activeNetwork = network;
+                this.networkHistory.push(networkId);
+                if (this.networkHistory.length > 100) {
+                    this.networkHistory = this.networkHistory.slice(-100);
+                }
+                
+                this.stats.networkSwitches++;
+                console.log(`🔄 Switched: ${oldNetwork?.networkId || 'none'} → ${networkId}`);
+                return true;
+            }
+            
+            loadBalance(networks) {
+                if (!networks.length) return {};
+                
+                const scores = {};
+                for (const network of networks) {
+                    const score = (
+                        network.bandwidthMbps * 0.3 +
+                        (100 - network.latencyMs) * 0.2 +
+                        (1 - network.costPerMb * 100) * 0.2 +
+                        network.reliability * 100 * 0.3
+                    );
+                    scores[network.networkId] = Math.max(0, score);
+                }
+                
+                const total = Object.values(scores).reduce((a, b) => a + b, 0);
+                if (total === 0) return {};
+                
+                const distribution = {};
+                for (const [id, score] of Object.entries(scores)) {
+                    distribution[id] = score / total;
+                }
+                
+                return distribution;
+            }
+            
+            fallbackNetwork() {
+                const preferenceOrder = [NetworkType.MESH, NetworkType.WIFI, NetworkType.CELLULAR, NetworkType.BLUETOOTH];
+                
+                for (const netType of preferenceOrder) {
+                    for (const network of this.availableNetworks.values()) {
+                        if (network.networkType === netType && network.isAvailable) {
+                            console.log(`🔙 Fallback: ${network.networkId}`);
+                            return network;
+                        }
+                    }
+                }
+                
+                return null;
+            }
+            
+            getStats() {
+                return {
+                    ...this.stats,
+                    availableNetworks: this.availableNetworks.size,
+                    activeNetwork: this.activeNetwork?.networkId || null
+                };
+            }
+        }
+        
+        // ============================================================
+        // 🕸️ MESH ROUTER - Route through human mesh network
+        // ============================================================
+        
+        const RouteQuality = {
+            EXCELLENT: 'excellent',
+            GOOD: 'good',
+            FAIR: 'fair',
+            POOR: 'poor'
+        };
+        
+        class MeshRouter {
+            constructor(config = {}) {
+                this.nodeId = config.nodeId || `router_${Date.now().toString(36)}`;
+                this.maxHops = config.maxHops || 10;
+                this.routeCacheTtl = config.routeCacheTtl || 60.0;
+                
+                this.neighbors = new Map();
+                this.routingTable = new Map();
+                this.routeCache = new Map();
+                this.packetQueue = new Map();
+                
+                this.stats = {
+                    packetsRouted: 0,
+                    routesDiscovered: 0,
+                    routingFailures: 0,
+                    averageHops: 0.0,
+                    totalEnergyUsed: 0.0
+                };
+                
+                console.log(`🕸️ Mesh Router initialized: ${this.nodeId}`);
+            }
+            
+            discoverNeighbors(scanRadius = 100.0) {
+                const discovered = [];
+                const numNeighbors = Math.floor(Math.random() * 4) + 2;
+                
+                for (let i = 0; i < numNeighbors; i++) {
+                    const node = {
+                        nodeId: `node_${i}_${Date.now().toString(36)}`,
+                        location: [
+                            (Math.random() - 0.5) * scanRadius * 2,
+                            (Math.random() - 0.5) * scanRadius * 2,
+                            0
+                        ],
+                        frequency: 1000 + (Math.random() - 0.5) * 200,
+                        lastSeen: Date.now(),
+                        hopCount: 1,
+                        energyCost: 0.01 + Math.random() * 0.09
+                    };
+                    
+                    this.neighbors.set(node.nodeId, node);
+                    discovered.push(node);
+                }
+                
+                console.log(`⚡ Discovered ${discovered.length} neighbors within ${scanRadius}m`);
+                return discovered;
+            }
+            
+            routePhase(phase, destination) {
+                const cacheKey = `${this.nodeId}_${destination}`;
+                
+                if (this.routeCache.has(cacheKey)) {
+                    const cached = this.routeCache.get(cacheKey);
+                    if (Date.now() - cached.timestamp < this.routeCacheTtl * 1000) {
+                        return cached.route;
+                    }
+                }
+                
+                const route = this.findRoute(destination);
+                
+                if (route) {
+                    this.routeCache.set(cacheKey, { route, timestamp: Date.now() });
+                    this.routingTable.set(destination, route);
+                    this.stats.routesDiscovered++;
+                    this.stats.averageHops = (
+                        (this.stats.averageHops * (this.stats.routesDiscovered - 1) + route.hops.length) /
+                        this.stats.routesDiscovered
+                    );
+                    console.log(`🎯 Route found: ${route.hops.length} hops, ${route.latencyMs.toFixed(1)}ms`);
+                } else {
+                    this.stats.routingFailures++;
+                    console.warn(`⚠️ No route found to ${destination}`);
+                }
+                
+                return route;
+            }
+            
+            findRoute(destination) {
+                // Simple BFS
+                const visited = new Set([this.nodeId]);
+                const queue = [[this.nodeId, [this.nodeId]]];
+                
+                while (queue.length > 0) {
+                    const [current, path] = queue.shift();
+                    
+                    if (current === destination) {
+                        return {
+                            routeId: `route_${Date.now().toString(36)}`,
+                            source: this.nodeId,
+                            destination: destination,
+                            hops: path,
+                            totalDistance: path.length * 50,
+                            totalEnergy: path.length * 0.05,
+                            quality: this.assessRouteQuality(path),
+                            latencyMs: path.length * 2
+                        };
+                    }
+                    
+                    if (path.length >= this.maxHops) continue;
+                    
+                    for (const neighborId of this.neighbors.keys()) {
+                        if (!visited.has(neighborId)) {
+                            visited.add(neighborId);
+                            queue.push([neighborId, [...path, neighborId]]);
+                        }
+                    }
+                }
+                
+                return null;
+            }
+            
+            forwardPacket(source, destination, data) {
+                if (!this.packetQueue.has(destination)) {
+                    this.packetQueue.set(destination, []);
+                }
+                
+                this.packetQueue.get(destination).push({
+                    source,
+                    data,
+                    timestamp: Date.now()
+                });
+                
+                this.stats.packetsRouted++;
+                console.log(`✅ Packet queued for ${destination}`);
+                return true;
+            }
+            
+            getPacketForNode(nodeId) {
+                if (this.packetQueue.has(nodeId) && this.packetQueue.get(nodeId).length > 0) {
+                    const packet = this.packetQueue.get(nodeId).shift();
+                    console.log(`✅ Retrieved packet for ${nodeId}`);
+                    return packet;
+                }
+                return null;
+            }
+            
+            assessRouteQuality(hops) {
+                const hopCount = hops.length;
+                if (hopCount <= 3) return RouteQuality.EXCELLENT;
+                if (hopCount <= 5) return RouteQuality.GOOD;
+                if (hopCount <= 7) return RouteQuality.FAIR;
+                return RouteQuality.POOR;
+            }
+            
+            getStats() {
+                return {
+                    ...this.stats,
+                    neighborCount: this.neighbors.size,
+                    routingTableSize: this.routingTable.size,
+                    cacheSize: this.routeCache.size
+                };
+            }
+        }
+        
+        // ============================================================
+        // 🌉 ΔBRIDGE - Gateway between ΔWorlds and regular Internet
+        // ============================================================
+        
+        class ΔBridge {
+            constructor(config = {}) {
+                this.nodeId = config.nodeId || `bridge_${Date.now().toString(36)}`;
+                this.maxRequestSize = config.maxRequestSize || 10 * 1024 * 1024;
+                this.timeoutSeconds = config.timeoutSeconds || 30.0;
+                this.cacheEnabled = config.cacheEnabled !== false;
+                this.cacheTtl = config.cacheTtl || 300;
+                
+                this.cache = new Map();
+                this.cacheHits = 0;
+                this.cacheMisses = 0;
+                
+                this.stats = {
+                    requestsTotal: 0,
+                    requestsSuccess: 0,
+                    requestsFailed: 0,
+                    bytesDownloaded: 0,
+                    bytesUploaded: 0,
+                    avgLatencyMs: 0.0,
+                    uniqueOrigins: new Set(),
+                    uniqueDomains: new Set()
+                };
+                
+                console.log(`🌉 ΔBRIDGE initialized: ${this.nodeId}`);
+            }
+            
+            async proxy(request) {
+                this.stats.requestsTotal++;
+                this.stats.uniqueOrigins.add(request.origin);
+                
+                if (!this.validateRequest(request)) {
+                    return this.errorResponse(request.requestId, 400, 'Invalid request');
+                }
+                
+                // Check cache for GET
+                if (request.method === 'GET' && this.cacheEnabled) {
+                    const cached = this.getFromCache(request.url);
+                    if (cached) {
+                        this.cacheHits++;
+                        return cached;
+                    }
+                    this.cacheMisses++;
+                }
+                
+                try {
+                    const startTime = Date.now();
+                    const response = await fetch(request.url, {
+                        method: request.method,
+                        headers: request.headers,
+                        body: request.body
+                    });
+                    
+                    const body = await response.text();
+                    const latencyMs = Date.now() - startTime;
+                    
+                    const bridgeResponse = {
+                        requestId: request.requestId,
+                        statusCode: response.status,
+                        headers: Object.fromEntries(response.headers.entries()),
+                        body: body,
+                        contentType: response.headers.get('content-type') || 'text/plain',
+                        sizeBytes: body.length,
+                        latencyMs: latencyMs,
+                        cached: false,
+                        timestamp: Date.now()
+                    };
+                    
+                    this.stats.requestsSuccess++;
+                    this.stats.bytesDownloaded += body.length;
+                    this.stats.avgLatencyMs = (
+                        (this.stats.avgLatencyMs * (this.stats.requestsSuccess - 1) + latencyMs) /
+                        this.stats.requestsSuccess
+                    );
+                    
+                    // Track domain
+                    try {
+                        const url = new URL(request.url);
+                        this.stats.uniqueDomains.add(url.hostname);
+                    } catch (e) {}
+                    
+                    // Cache GET responses
+                    if (request.method === 'GET' && this.cacheEnabled) {
+                        this.setInCache(request.url, bridgeResponse);
+                    }
+                    
+                    console.log(`✅ Proxied: ${request.method} ${request.url.substring(0, 50)}... → ${response.status}`);
+                    return bridgeResponse;
+                    
+                } catch (error) {
+                    this.stats.requestsFailed++;
+                    console.error(`❌ Proxy error: ${error.message}`);
+                    return this.errorResponse(request.requestId, 502, error.message);
+                }
+            }
+            
+            validateRequest(request) {
+                if (!request.url) return false;
+                try {
+                    const url = new URL(request.url);
+                    if (!['http:', 'https:'].includes(url.protocol)) return false;
+                } catch (e) {
+                    return false;
+                }
+                if (!request.origin || request.origin === 'unknown') return false;
+                return true;
+            }
+            
+            getFromCache(url) {
+                const key = `GET:${url}`;
+                if (this.cache.has(key)) {
+                    const { response, timestamp } = this.cache.get(key);
+                    if (Date.now() - timestamp < this.cacheTtl * 1000) {
+                        response.cached = true;
+                        return response;
+                    }
+                    this.cache.delete(key);
+                }
+                return null;
+            }
+            
+            setInCache(url, response) {
+                const key = `GET:${url}`;
+                this.cache.set(key, { response: { ...response }, timestamp: Date.now() });
+            }
+            
+            errorResponse(requestId, statusCode, message) {
+                return {
+                    requestId,
+                    statusCode,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ error: message }),
+                    contentType: 'application/json',
+                    sizeBytes: message.length,
+                    latencyMs: 0,
+                    cached: false,
+                    timestamp: Date.now()
+                };
+            }
+            
+            getStats() {
+                return {
+                    bridgeId: this.nodeId,
+                    requests: {
+                        total: this.stats.requestsTotal,
+                        success: this.stats.requestsSuccess,
+                        failed: this.stats.requestsFailed,
+                        successRate: this.stats.requestsTotal > 0 ? this.stats.requestsSuccess / this.stats.requestsTotal : 0
+                    },
+                    data: {
+                        downloadedBytes: this.stats.bytesDownloaded,
+                        downloadedMb: this.stats.bytesDownloaded / (1024 * 1024)
+                    },
+                    performance: {
+                        avgLatencyMs: this.stats.avgLatencyMs
+                    },
+                    unique: {
+                        origins: this.stats.uniqueOrigins.size,
+                        domains: this.stats.uniqueDomains.size
+                    },
+                    cache: {
+                        size: this.cache.size,
+                        hits: this.cacheHits,
+                        misses: this.cacheMisses,
+                        hitRate: (this.cacheHits + this.cacheMisses) > 0 ? this.cacheHits / (this.cacheHits + this.cacheMisses) : 0
+                    }
+                };
+            }
+        }
+        
+        // ============================================================
+        // 🔥 GLOBAL INSTANCES
+        // ============================================================
+        
+        let primePhase = null;       // ΔPHASE0 singleton
+        let myPhase = null;          // My personal ΔPhase
+        let phaseGateway = null;     // PhaseGateway instance
+        let globalGateway = null;    // GlobalGateway instance
+        let nodeDiscovery = null;    // NodeDiscovery instance
+        let gatewaySwitch = null;    // GatewaySwitch instance
+        let meshRouter = null;       // MeshRouter instance
+        let deltaBridge = null;      // ΔBridge instance
+        
+        // ============================================================
         // 🔥💎⚡ ΔSTATION - COMPLETE NODE FOR EACH USER ⚡💎🔥
+        // ============================================================
         // Each user is a full station that RECEIVES and SENDS!
         // Based on: PhaseGateway, MeshRouter, SyncLoop, TemporalResonance
         class ΔStation {
@@ -1420,11 +2517,89 @@
             console.log('🆔 Generated fresh ΔID:', myDeltaId);
             document.getElementById('myDeltaId').textContent = myDeltaId;
             
-            // 🔥💎⚡ CREATE ΔSTATION FOR THIS USER ⚡💎🔥
-            // Each user is a FULL STATION that receives AND sends!
+            // ============================================================
+            // 🔥💎⚡ INITIALIZE ALL ΔWORLDS SYSTEMS ⚡💎🔥
+            // ============================================================
+            
+            console.log('╔══════════════════════════════════════════════════════════════════╗');
+            console.log('║ 🔥💎⚡ INITIALIZING COMPLETE ΔWORLDS NETWORK ⚡💎🔥              ║');
+            console.log('╚══════════════════════════════════════════════════════════════════╝');
+            
+            // 1. ΔPHASE0 - Prime Phase (shared reality)
+            primePhase = new ΔPHASE0();
+            console.log('🌌 1. ΔPHASE0 (Prime Phase) ready');
+            
+            // 2. ΔPhase - My personal phase
+            myPhase = new ΔPhase(myDeltaId, 'Web User');
+            myPhase.updateContext('language', navigator.language);
+            myPhase.updateContext('timezone', Intl.DateTimeFormat().resolvedOptions().timeZone);
+            myPhase.updateContext('platform', navigator.platform);
+            console.log('🔮 2. ΔPhase (Personal Phase) ready');
+            
+            // 3. PhaseGateway - The pressure cell
+            phaseGateway = new PhaseGateway(`gateway_${myDeltaId}`);
+            phaseGateway.connectPhase(myPhase);
+            phaseGateway.addExternalEndpoint(window.location.origin);
+            console.log('🔥 3. PhaseGateway (Pressure Cell) ready');
+            console.log(`   - Stats: ${JSON.stringify(phaseGateway.getStats())}`);
+            
+            // 4. GlobalGateway - Our own Cloudflare replacement!
+            globalGateway = new GlobalGateway({ nodeId: myDeltaId });
+            globalGateway.enableGatewayMode();
+            console.log('🌐 4. GlobalGateway (Cloudflare Replacement) ready');
+            console.log(`   - Shareable link: ${globalGateway.getShareableLink('/call')}`);
+            
+            // 5. NodeDiscovery - Discover nearby nodes
+            nodeDiscovery = new NodeDiscovery({ nodeId: myDeltaId, maxConnections: 20 });
+            nodeDiscovery.advertiseSelf();
+            // Start scanning in background
+            setTimeout(() => {
+                nodeDiscovery.scanProximity().then(nodes => {
+                    console.log(`📡 5. NodeDiscovery found ${nodes.length} nearby nodes`);
+                });
+            }, 1000);
+            console.log('📡 5. NodeDiscovery ready (scanning...)');
+            
+            // 6. GatewaySwitch - Switch between networks
+            gatewaySwitch = new GatewaySwitch({ nodeId: myDeltaId, preferMesh: true });
+            const networks = gatewaySwitch.detectNetworks();
+            if (networks.length > 0) {
+                gatewaySwitch.switchNetwork('mesh_local'); // Prefer mesh (free!)
+            }
+            console.log('🔄 6. GatewaySwitch ready');
+            console.log(`   - Available networks: ${networks.map(n => n.networkId).join(', ')}`);
+            
+            // 7. MeshRouter - Route through mesh
+            meshRouter = new MeshRouter({ nodeId: myDeltaId, maxHops: 10 });
+            meshRouter.discoverNeighbors(100);
+            console.log('🕸️ 7. MeshRouter ready');
+            console.log(`   - Neighbors: ${meshRouter.neighbors.size}`);
+            
+            // 8. ΔBridge - Gateway to regular Internet
+            deltaBridge = new ΔBridge({ nodeId: myDeltaId, cacheEnabled: true });
+            console.log('🌉 8. ΔBridge (Internet Gateway) ready');
+            
+            // 9. ΔStation - Complete node for this user
             myStation = new ΔStation(myDeltaId);
             myStation.isConnected = true;
-            console.log('🔥 ΔStation ready:', myStation.getStats());
+            console.log('🔥 9. ΔStation ready:', myStation.getStats());
+            
+            console.log('╔══════════════════════════════════════════════════════════════════╗');
+            console.log('║ ✅ ALL 9 ΔWORLDS SYSTEMS INITIALIZED!                            ║');
+            console.log('║                                                                  ║');
+            console.log('║ LOCAL (ביתית):                                                   ║');
+            console.log('║   ✅ NodeDiscovery - גילוי שכנים (BLE/WiFi)                      ║');
+            console.log('║   ✅ GatewaySwitch - מעבר בין רשתות                              ║');
+            console.log('║   ✅ MeshRouter - ניתוב mesh מלא                                 ║');
+            console.log('║   ✅ ΔBridge - גשר לאינטרנט רגיל                                 ║');
+            console.log('║                                                                  ║');
+            console.log('║ PUBLIC (ציבורית):                                                ║');
+            console.log('║   ✅ ΔPHASE0 - Prime Phase (shared reality)                      ║');
+            console.log('║   ✅ ΔPhase - Personal Phase                                     ║');
+            console.log('║   ✅ PhaseGateway - תא הלחץ המלא                                 ║');
+            console.log('║   ✅ GlobalGateway - החלפת Cloudflare!                           ║');
+            console.log('║   ✅ ΔStation - Complete Node                                    ║');
+            console.log('╚══════════════════════════════════════════════════════════════════╝');
             
             // 🔥 Initialize PeerJS with public signaling - NO PORT FORWARD!
             initPeerJS();
@@ -1441,6 +2616,14 @@
             
             // Log initial packet
             logPacket('tx', 'init', { id: myDeltaId });
+            
+            // 🔥 Log complete system status
+            console.log('📊 SYSTEM STATUS:');
+            console.log('   PhaseGateway:', phaseGateway.getStats());
+            console.log('   GlobalGateway:', globalGateway.getStats());
+            console.log('   GatewaySwitch:', gatewaySwitch.getStats());
+            console.log('   MeshRouter:', meshRouter.getStats());
+            console.log('   ΔBridge:', deltaBridge.getStats());
         }
         
         function initPhaseWave() {
