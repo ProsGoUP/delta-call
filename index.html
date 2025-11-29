@@ -2159,8 +2159,10 @@
                         currentCallId = 'p2p-answerer-' + Date.now();
                         console.log('📞 Generated answerer callId:', currentCallId);
                     }
-                    // 🔥 Make sure usingPeerJSStream is false for Phase Resonance!
-                    usingPeerJSStream = false;
+                    // 🔥 DON'T override usingPeerJSStream here!
+                    // If PeerJS media stream is active, keep using it
+                    // DataConnection is for Phase Resonance DATA, not video!
+                    console.log('📡 DataConnection ready, usingPeerJSStream:', usingPeerJSStream);
                     setupResonanceSync();
                 }
                 
@@ -2326,9 +2328,9 @@
             
             console.log('📞 Starting P2P call to:', peerId);
             
-            // 🔥 PHASE RESONANCE MODE: Don't use PeerJS video stream!
-            // We'll use our Phase Resonance data channel for TRUE 0-DATA video!
-            usingPeerJSStream = false;  // ← Phase Resonance במקום WebRTC video
+            // 🔥 Use PeerJS WebRTC for REAL video streaming!
+            // Phase Resonance data is sent via DataConnection in parallel
+            usingPeerJSStream = true;  // ← WebRTC video + Phase Resonance data
             
             // 🔥 Check if mediaDevices is available (requires HTTPS or localhost)
             if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
