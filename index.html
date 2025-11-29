@@ -1778,7 +1778,7 @@
             getPhase() {
                 // 🔥 Everyone calculates the SAME phase from UNIX time!
                 const unixSeconds = Date.now() / 1000;
-                this.phase = (elapsed * this.frequency) % 1.0;
+                this.phase = (unixSeconds * this.frequency) % 1.0;
                 return this.phase;
             }
             
