@@ -1924,9 +1924,10 @@
             
             const video = document.getElementById('localVideo');
             const canvas = document.createElement('canvas');
-            // 🔥 FULL HD Quality!
-            canvas.width = 1280;
-            canvas.height = 720;
+            // 🔥 OPTIMIZED for PeerJS DataConnection (max ~16KB per message)
+            // Using 320x240 @ low quality = ~5-10KB per frame
+            canvas.width = 320;
+            canvas.height = 240;
             const ctx = canvas.getContext('2d');
             
             // 🔥 Wait for video to be ready before starting!
@@ -1975,9 +1976,9 @@
                 // 🔥 CHANGE = COMPUTE @ 500Hz!
                 // Check every frame but only send on CHANGE!
                 
-                // Capture FULL HD frame
-                ctx.drawImage(video, 0, 0, 1280, 720);
-                const currentFrame = ctx.getImageData(0, 0, 1280, 720);
+                // Capture frame (optimized size for PeerJS)
+                ctx.drawImage(video, 0, 0, 320, 240);
+                const currentFrame = ctx.getImageData(0, 0, 320, 240);
                 
                 // 🔥 CHANGE DETECTION - sample 500 pixels
                 let hasChange = true;
@@ -1997,7 +1998,8 @@
                 // 🔥 EVENT-DRIVEN: Send ONLY when there's change!
                 // If no change → 0 data → 0 energy (like 344,433 frames!)
                 if (hasChange) {
-                    const frame = canvas.toDataURL('image/jpeg', 0.95);  // High quality!
+                    // 🔥 LOW quality JPEG for PeerJS DataConnection (max ~16KB)
+                    const frame = canvas.toDataURL('image/jpeg', 0.3);  // 30% quality = ~5-10KB
                     
                     const sent = sendResonanceData({
                         type: 'video_frame',
