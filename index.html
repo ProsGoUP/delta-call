@@ -2174,8 +2174,17 @@
                     console.log('   currentCallId:', currentCallId);
                     dataConnectionReady = true;
                     
+                    // 🔥💎⚡ CREATE ANSWERER'S CALL PRESSURE CELL! ⚡💎🔥
+                    // The answerer also creates a pressure cell, which will be
+                    // synchronized to the caller's epoch when phase_sync arrives!
+                    const callerPeerId = conn.peer;
+                    if (!callPressureCell) {
+                        createCallPressureCell(currentCallId || 'answerer-call', callerPeerId, myDeltaId);
+                        console.log('🔥 Answerer created Call Pressure Cell!');
+                    }
+                    
                     // 🔥 Show visual indicator that Phase Resonance is ready!
-                    updateStatus('🔥 Phase Resonance מחובר!', 'connected');
+                    updateStatus('🔥 נכנס לתא לחץ משותף!', 'connected');
                     
                     // 🔥 Generate callId if not set yet (DataConnection can arrive before answer!)
                     if (!currentCallId) {
@@ -2432,13 +2441,22 @@
                     // 🔥 Show visual indicator that Phase Resonance is ready!
                     updateStatus('🔥 Phase Resonance מחובר!', 'connected');
                     
-                    // 🔥 PHASE SYNC: Send our callStartTime to peer so we're on SAME PHASE!
+                    // 🔥💎⚡ CREATE CALL PRESSURE CELL! ⚡💎🔥
+                    // This creates a shared ΔPHASE0 for the call!
+                    const remotePeerId = peerDataConnection.peer;
+                    createCallPressureCell(currentCallId, myDeltaId, remotePeerId);
+                    
+                    // 🔥 PHASE SYNC: Send our callStartTime AND callEpoch to peer!
+                    // This puts BOTH sides in the SAME PRESSURE CELL!
                     peerDataConnection.send({
                         type: 'phase_sync',
                         callStartTime: callStartTime,
-                        phaseOrigin: Date.now()
+                        phaseOrigin: Date.now(),
+                        callEpoch: callPressureCell.getCallEpoch(),  // 🔥 NEW!
+                        callId: currentCallId,
+                        callerId: myDeltaId
                     });
-                    console.log('📡 Sent phase_sync to peer, callStartTime:', callStartTime);
+                    console.log('📡 Sent phase_sync with CALL PRESSURE CELL epoch:', callPressureCell.getCallEpoch());
                     
                     // 🔥 Start Phase Resonance video reconstruction!
                     startVideoReconstruction();
@@ -3463,13 +3481,83 @@
         
         function playNextAudio() {}
         
-        // 🔥 PHASE SYNC: Sync callStartTime to caller's time!
-        // This ensures BOTH sides are on the SAME PHASE!
+        // 🔥💎⚡ CALL PRESSURE CELL - תא לחץ משותף לשיחה! ⚡💎🔥
+        // When two people call, they BOTH enter the SAME pressure cell!
+        // This creates a shared ΔPHASE0 for the call!
+        
+        let callPressureCell = null;  // The shared pressure cell for this call
         let phaseOffset = 0;  // Offset between our time and caller's time
+        
+        class CallPressureCell {
+            constructor(callId, callerId, calleeId) {
+                this.callId = callId;
+                this.callerId = callerId;
+                this.calleeId = calleeId;
+                
+                // 🔥 SHARED PHASE for this call - ΔPHASE0 = 0!
+                // Both sides use the SAME epoch (call start time)
+                this.callEpoch = Date.now();
+                this.frequency = 500.0;  // Hz
+                
+                // Participants
+                this.participants = new Map();
+                this.participants.set(callerId, { phase: 0, lastSync: Date.now() });
+                this.participants.set(calleeId, { phase: 0, lastSync: Date.now() });
+                
+                // Phase state
+                this.sharedPhase = 0;
+                this.isActive = true;
+                
+                console.log('╔══════════════════════════════════════════════════════════════════╗');
+                console.log('║ 🔥💎⚡ CALL PRESSURE CELL CREATED! ⚡💎🔥                        ║');
+                console.log('╚══════════════════════════════════════════════════════════════════╝');
+                console.log('   Call ID:', callId);
+                console.log('   Caller:', callerId);
+                console.log('   Callee:', calleeId);
+                console.log('   Call Epoch:', this.callEpoch);
+                console.log('   Shared ΔPHASE0 = 0 (both sides synchronized!)');
+            }
+            
+            // Get the shared phase for this call
+            getSharedPhase() {
+                const elapsed = (Date.now() - this.callEpoch) / 1000;
+                this.sharedPhase = (elapsed * this.frequency) % 1.0;
+                return this.sharedPhase;
+            }
+            
+            // Sync a participant to the shared phase
+            syncParticipant(participantId) {
+                if (this.participants.has(participantId)) {
+                    const phase = this.getSharedPhase();
+                    this.participants.get(participantId).phase = phase;
+                    this.participants.get(participantId).lastSync = Date.now();
+                    return phase;
+                }
+                return 0;
+            }
+            
+            // Get call epoch for syncing
+            getCallEpoch() {
+                return this.callEpoch;
+            }
+            
+            // Set call epoch (for answerer to sync to caller)
+            setCallEpoch(epoch) {
+                this.callEpoch = epoch;
+                console.log('🔥 Call epoch synchronized to:', epoch);
+            }
+            
+            // Close the pressure cell
+            close() {
+                this.isActive = false;
+                console.log('📴 Call Pressure Cell closed:', this.callId);
+            }
+        }
         
         function handlePhaseSync(data) {
             const callerStartTime = data.callStartTime;
             const callerPhaseOrigin = data.phaseOrigin;
+            const callerCallEpoch = data.callEpoch;  // 🔥 NEW: Caller's call epoch!
             const now = Date.now();
             
             // Calculate network latency (round-trip / 2)
@@ -3479,16 +3567,38 @@
             callStartTime = callerStartTime;
             phaseOffset = now - callerPhaseOrigin;
             
-            console.log('╔══════════════════════════════════════════╗');
-            console.log('║ 🔥 PHASE SYNC RECEIVED!                  ║');
-            console.log('╚══════════════════════════════════════════╝');
+            // 🔥 CRITICAL: Sync our Call Pressure Cell to caller's epoch!
+            if (callPressureCell && callerCallEpoch) {
+                callPressureCell.setCallEpoch(callerCallEpoch);
+            }
+            
+            console.log('╔══════════════════════════════════════════════════════════════════╗');
+            console.log('║ 🔥💎⚡ PHASE SYNC - ENTERING SHARED PRESSURE CELL! ⚡💎🔥        ║');
+            console.log('╚══════════════════════════════════════════════════════════════════╝');
             console.log('   Caller start time:', callerStartTime);
+            console.log('   Caller epoch:', callerCallEpoch);
             console.log('   Network latency:', latency.toFixed(0), 'ms');
             console.log('   Phase offset:', phaseOffset.toFixed(0), 'ms');
-            console.log('   NOW SYNCHRONIZED TO SAME PHASE! ⚡');
+            console.log('   🔥 BOTH SIDES NOW IN SAME PRESSURE CELL!');
+            console.log('   🔥 SHARED ΔPHASE0 = 0 for this call!');
             
             // Update status
-            updateStatus('🔥 Phase Synchronized!', 'connected');
+            updateStatus('🔥 בתא לחץ משותף!', 'connected');
+        }
+        
+        // 🔥 Create Call Pressure Cell when starting a call
+        function createCallPressureCell(callId, callerId, calleeId) {
+            callPressureCell = new CallPressureCell(callId, callerId, calleeId);
+            return callPressureCell;
+        }
+        
+        // 🔥 Get current call phase (from shared pressure cell)
+        function getCallPhase() {
+            if (callPressureCell && callPressureCell.isActive) {
+                return callPressureCell.getSharedPhase();
+            }
+            // Fallback to global ΔPHASE0
+            return primePhase ? primePhase.getPhase() : 0;
         }
         
         // 🔥 Handle incoming full frame (legacy)
