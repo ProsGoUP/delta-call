@@ -2445,7 +2445,7 @@
                 console.log('   Target peer:', peerId);
                 peerDataConnection = peer.connect(peerId, { 
                     reliable: true,
-                    serialization: 'binary'  // 🔥 Binary for larger data!
+                    serialization: 'json'  // 🔥 JSON for small phase packets!
                 });
                 
                 console.log('   peerDataConnection created:', !!peerDataConnection);
@@ -3249,9 +3249,9 @@
                     hasChange = changeRatio > CHANGE_THRESHOLD || phaseCounter % 30 === 0;
                 }
                 
-                // 🔥💀⚡ TEMPORAL RESONANCE: Change = Compute! ⚡💀🔥
+                // 🔥💀⚡ TEMPORAL RESONANCE: Change = Compute! ⚡💀⚡
                 // Send ONLY phase signature (8 bits!) when there's change!
-                // If no change → 0 data → 0 energy (like 344,433 frames!)
+                // If no change → 0 data → 0 energy!
                 if (hasChange) {
                     // 🔥 Use PhaseEngine to generate 8-bit signature!
                     const phaseSignature = phaseEngine.generatePhaseSignature(currentFrame);
@@ -3268,26 +3268,26 @@
                     const gAvg = Math.floor(gSum / samples);
                     const bAvg = Math.floor(bSum / samples);
                     
-                    // 🔥 Send ONLY phase data - NOT full frame!
+                    // 🔥 QUANTUM VIDEO: Send ONLY phase data!
                     // Total: ~50 bytes instead of ~50KB!
                     const sent = sendResonanceData({
                         type: 'phase',
-                        p: phaseCounter,           // Phase counter
-                        s: phaseSignature,         // 8-bit phase signature
-                        r: rAvg,                   // Average R
-                        g: gAvg,                   // Average G
-                        b: bAvg,                   // Average B
-                        c: Math.floor(changeRatio * 100),  // Change %
-                        f: BASE_FREQUENCY,         // Frequency
+                        p: phaseCounter,
+                        s: phaseSignature,
+                        r: rAvg,
+                        g: gAvg,
+                        b: bAvg,
+                        c: Math.floor(changeRatio * 100),
+                        f: BASE_FREQUENCY,
                         t: now
                     });
                     
-                    if (sent && phaseCounter % 100 === 0) {
+                    if (sent && phaseCounter % 30 === 0) {
                         console.log(`📤 Phase ${phaseCounter}: sig=${phaseSignature}, RGB(${rAvg},${gAvg},${bAvg}), change=${(changeRatio*100).toFixed(1)}%`);
                     }
                     
                     lastFrameData = currentFrame;
-                    totalEnergy += 0.0001;  // Much less energy for phase only!
+                    totalEnergy += 0.0001;
                 }
                 
                 requestAnimationFrame(phaseLoop);
@@ -3342,19 +3342,17 @@
                             audioData[i] = Math.max(-32768, Math.min(32767, Math.round(inputData[i] * 32768)));
                         }
                         
-                        // 🔥💀⚡ TEMPORAL RESONANCE AUDIO - Phase only! ⚡💀🔥
-                        // Calculate audio energy signature (8 bits!)
+                        // 🔥💀⚡ QUANTUM AUDIO - Phase only! ⚡💀🔥
                         let energy = 0;
                         for (let i = 0; i < inputData.length; i++) {
                             energy += Math.abs(inputData[i]);
                         }
                         const avgEnergy = Math.floor((energy / inputData.length) * 255);
                         
-                        // Send ONLY phase data - NOT full audio samples!
                         sendResonanceData({
                             type: 'audio_phase',
                             p: phaseCounter,
-                            e: avgEnergy,  // 8-bit energy signature
+                            e: avgEnergy,
                             t: Date.now()
                         });
                     }
@@ -3992,22 +3990,22 @@
             }
         }
         
-        // 🔥💀⚡ TEMPORAL RESONANCE: Reconstruct video from phase! ⚡💀🔥
+        // 🔥💀⚡ QUANTUM VIDEO: Reconstruct from phase! ⚡💀🔥
         function reconstructFromPhase(r, g, b, signature, change) {
             // 🔥 ALWAYS ensure canvas exists!
             if (!remoteFrameCanvas || !remoteFrameCtx || !remoteFrameData) {
-                console.log('🎬 Creating Phase Reconstruction canvas...');
+                console.log('🎬 Creating Quantum Reconstruction canvas...');
                 remoteFrameCanvas = document.createElement('canvas');
                 remoteFrameCanvas.width = 320;
                 remoteFrameCanvas.height = 240;
-                remoteFrameCtx = remoteFrameCanvas.getContext('2d');
+                remoteFrameCtx = remoteFrameCanvas.getContext('2d', { willReadFrequently: true });
                 remoteFrameData = remoteFrameCtx.createImageData(320, 240);
                 
-                // Initialize with gray
+                // Initialize with incoming colors
                 for (let i = 0; i < remoteFrameData.data.length; i += 4) {
-                    remoteFrameData.data[i] = 128;
-                    remoteFrameData.data[i + 1] = 128;
-                    remoteFrameData.data[i + 2] = 128;
+                    remoteFrameData.data[i] = r;
+                    remoteFrameData.data[i + 1] = g;
+                    remoteFrameData.data[i + 2] = b;
                     remoteFrameData.data[i + 3] = 255;
                 }
                 
@@ -4016,37 +4014,40 @@
                 const remoteVideo = document.getElementById('remoteVideo');
                 if (remoteVideo) {
                     remoteVideo.srcObject = stream;
-                    console.log('✅ Phase Reconstruction connected to remoteVideo!');
-                } else {
-                    console.error('❌ remoteVideo element not found!');
+                    console.log('✅ Quantum Reconstruction connected to remoteVideo!');
                 }
-                console.log('🎬 Phase Reconstruction canvas ready - 320x240!');
+                console.log('🎬 Quantum Reconstruction ready - 320x240!');
             }
             
-            // 🔥 SAFETY CHECK
-            if (!remoteFrameData || !remoteFrameData.data) {
-                console.error('❌ remoteFrameData is null or invalid!', {
-                    remoteFrameData: remoteFrameData,
-                    remoteFrameCanvas: !!remoteFrameCanvas,
-                    remoteFrameCtx: !!remoteFrameCtx
-                });
-                return;
-            }
+            // 🔥 QUANTUM RECONSTRUCTION with phase modulation!
+            const width = 320;
+            const height = 240;
             
-            // 🔥 FAST reconstruction - direct color fill!
-            const phaseOffset = (signature / 255) * 30 - 15;
-            const blend = Math.min(0.5, Math.max(0.1, change / 100));  // At least 10% blend!
+            // Strong blend for visible changes
+            const blend = Math.max(0.3, Math.min(0.9, change / 20));
             
-            // Calculate target colors
-            const targetR = Math.max(0, Math.min(255, r + phaseOffset));
-            const targetG = Math.max(0, Math.min(255, g + phaseOffset * 0.8));
-            const targetB = Math.max(0, Math.min(255, b + phaseOffset * 0.6));
+            // Phase creates spatial patterns
+            const phaseScale = (signature / 255) * Math.PI * 2;
             
-            // Fast fill with temporal smoothing
-            for (let i = 0; i < remoteFrameData.data.length; i += 4) {
-                remoteFrameData.data[i] = Math.floor(remoteFrameData.data[i] * (1 - blend) + targetR * blend);
-                remoteFrameData.data[i + 1] = Math.floor(remoteFrameData.data[i + 1] * (1 - blend) + targetG * blend);
-                remoteFrameData.data[i + 2] = Math.floor(remoteFrameData.data[i + 2] * (1 - blend) + targetB * blend);
+            // Fast pixel update with quantum interference patterns
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    const i = (y * width + x) * 4;
+                    
+                    // Quantum interference - creates spatial variation
+                    const spatialPhase = Math.sin(x * 0.1 + phaseScale) * Math.cos(y * 0.1 + phaseScale);
+                    const variation = spatialPhase * 20;
+                    
+                    // Target colors with phase modulation
+                    const targetR = Math.max(0, Math.min(255, r + variation));
+                    const targetG = Math.max(0, Math.min(255, g + variation * 0.9));
+                    const targetB = Math.max(0, Math.min(255, b + variation * 0.8));
+                    
+                    // Temporal smoothing
+                    remoteFrameData.data[i] = Math.floor(remoteFrameData.data[i] * (1 - blend) + targetR * blend);
+                    remoteFrameData.data[i + 1] = Math.floor(remoteFrameData.data[i + 1] * (1 - blend) + targetG * blend);
+                    remoteFrameData.data[i + 2] = Math.floor(remoteFrameData.data[i + 2] * (1 - blend) + targetB * blend);
+                }
             }
             
             // Draw to canvas
