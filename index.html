@@ -2819,11 +2819,14 @@
         // ========================================
         
         function showIncomingCall(callerId, callerName) {
+            // 🔥 Handle missing callerName (from PeerJS call)
+            const name = callerName || callerId || 'Unknown';
+            
             document.getElementById('callInput').style.display = 'none';
             document.getElementById('incomingCall').style.display = 'block';
-            document.getElementById('callerName').textContent = callerName;
-            document.getElementById('callerId').textContent = callerId;
-            document.getElementById('callerAvatar').textContent = callerName.charAt(0).toUpperCase();
+            document.getElementById('callerName').textContent = name;
+            document.getElementById('callerId').textContent = callerId || '';
+            document.getElementById('callerAvatar').textContent = name.charAt(0).toUpperCase();
         }
         
         async function startCall() {
