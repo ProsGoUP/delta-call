@@ -1,0 +1,1256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ΔTIME · Launch Event — Internet as Time</title>
+  <meta name="description" content="ΔTIME Launch Event — Internet as Time. Max8 Reflex Engine. ΔAGI. ΔWorlds. LCX.">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root{
+      --bg:#020617;
+      --ink:#f9fafb;
+      --ink-2:#e5e7eb;
+      --muted:#9ca3af;
+      --ink-3:#cbd5e1;
+      --line:#4b5563;
+      --glow-a:#38bdf8;
+      --glow-b:#22c55e;
+      --glow-c:#a855f7;
+      --accent:#f97316;
+    }
+
+    html, body {
+      height: 100%;
+      scroll-behavior: smooth;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont,
+        "SF Pro Display", "Helvetica Neue", Arial, sans-serif;
+    }
+    body { overflow-x: hidden; }
+
+    ::selection {
+      background: rgba(56, 189, 248, 0.25);
+      color: #e5f2ff;
+    }
+
+    .page {
+      width: 100%;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at top, #0b1120 0, #020617 40%, #000 90%);
+      color: var(--ink);
+      position: relative;
+    }
+
+    /* GLOBAL BACKGROUND CANVAS (subtle stars / noise / orbit) */
+    #bg-canvas {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      opacity: 0.35;
+      mix-blend-mode: lighten;
+    }
+
+    /* SLIDES */
+    .slide {
+      min-height: 100vh;
+      padding: 6rem 1.5rem 5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      opacity: 0;
+      transform: translateY(40px);
+      transition: opacity 0.85s ease-out, transform 0.85s ease-out;
+      z-index: 1;
+    }
+    .slide.is-visible { opacity: 1; transform: translateY(0); }
+
+    .slide-inner {
+      max-width: 1100px;
+      width: 100%;
+      margin: 0 auto;
+      text-align: center;
+      position: relative;
+    }
+
+    .slide-kicker {
+      font-size: 0.75rem;
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+      color: #64748b;
+      margin-bottom: 1.25rem;
+    }
+
+    h1 {
+      font-size: clamp(2.8rem, 6vw, 4.2rem);
+      line-height: 1.02;
+      letter-spacing: -0.06em;
+      margin-bottom: 1.2rem;
+    }
+    h2 {
+      font-size: clamp(1.5rem, 3vw, 2.3rem);
+      line-height: 1.25;
+      letter-spacing: -0.03em;
+      margin-bottom: 1.2rem;
+      color: var(--ink-2);
+    }
+    p {
+      font-size: 1rem;
+      line-height: 1.8;
+      color: var(--muted);
+      max-width: 760px;
+      margin: 0.5rem auto 0;
+    }
+
+    .big-chain {
+      font-size: 1.05rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-top: 0.75rem;
+    }
+
+    .highlight {
+      background: linear-gradient(120deg, var(--glow-a), var(--glow-b), var(--glow-c));
+      -webkit-background-clip: text;
+      color: transparent;
+      font-weight: 700;
+    }
+    .fade { opacity: 0.45; }
+
+    .divider {
+      width: 72px;
+      height: 1px;
+      background: linear-gradient(to right, transparent, var(--line), transparent);
+      margin: 1.5rem auto 1.25rem;
+    }
+
+    /* CANVAS FRAME */
+    .canvas-frame {
+      margin-top: 2.2rem;
+      border-radius: 24px;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      background:
+        radial-gradient(circle at top left, rgba(15,23,42,0.95) 0, #020617 52%),
+        radial-gradient(circle at bottom right, rgba(8,47,73,0.75) 0, #020617 60%);
+      min-height: 280px;
+      position: relative;
+      box-shadow: 0 36px 100px rgba(0,0,0,0.7);
+      overflow: hidden;
+    }
+    .canvas-frame::before {
+      content: "";
+      position: absolute;
+      inset: -40%;
+      background:
+        radial-gradient(circle at 10% 0%, rgba(56,189,248,0.2) 0, transparent 55%),
+        radial-gradient(circle at 90% 100%, rgba(168,85,247,0.18) 0, transparent 55%);
+      opacity: 0;
+      animation: frameGlow 6s ease-in-out infinite;
+      pointer-events: none;
+    }
+    .canvas-label {
+      position: absolute;
+      top: 14px;
+      right: 18px;
+      font-size: 0.7rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: #6b7280;
+      z-index: 2;
+    }
+    .cnv {
+      position: absolute;
+      inset: 0;
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+    .canvas-hint {
+      position: absolute;
+      bottom: 10px;
+      left: 14px;
+      font-size: 0.72rem;
+      letter-spacing: 0.12em;
+      color: #6b7280;
+      text-transform: uppercase;
+      z-index: 2;
+      user-select: none;
+    }
+
+    /* GRID CARDS */
+    .chain-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 1rem;
+      margin-top: 2rem;
+      text-align: left;
+    }
+    .chain-card {
+      border-radius: 20px;
+      padding: 1.1rem 1rem;
+      background: radial-gradient(circle at top left, #0b1222 0, #050a16 60%);
+      border: 1px solid rgba(55,65,81,0.9);
+      box-shadow: 0 20px 55px rgba(0,0,0,0.85);
+      position: relative;
+      overflow: hidden;
+      transform: translateY(18px);
+      opacity: 0;
+      transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+    }
+    .slide.is-visible .chain-card { opacity: 1; transform: translateY(0); }
+    .chain-card:nth-child(2) { transition-delay: 0.1s; }
+    .chain-card:nth-child(3) { transition-delay: 0.2s; }
+    .chain-card h3 {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      color: #9ca3af;
+      margin-bottom: 0.55rem;
+    }
+    .chain-card p { font-size: 0.9rem; line-height: 1.6; color: #d1d5db; margin: 0; }
+    .chain-label {
+      position: absolute;
+      top: 0.7rem;
+      right: 0.9rem;
+      font-size: 0.65rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: #4b5563;
+    }
+
+    /* SPLIT */
+    .split-layout {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1.75rem;
+      margin-top: 2rem;
+    }
+    .console {
+      border-radius: 22px;
+      background: radial-gradient(circle at top left, #081225 0, #050a16 80%);
+      border: 1px solid rgba(75,85,99,0.9);
+      padding: 1.1rem 1.25rem 1.2rem;
+      text-align: left;
+      box-shadow: 0 26px 70px rgba(0,0,0,0.9);
+      position: relative;
+      overflow: hidden;
+    }
+    .console::before {
+      content: "";
+      position: absolute;
+      inset: -20%;
+      background:
+        radial-gradient(circle at 0 0, rgba(56,189,248,0.22) 0, transparent 55%),
+        radial-gradient(circle at 100% 100%, rgba(249,115,22,0.18) 0, transparent 55%);
+      opacity: 0;
+      animation: frameGlow 7s ease-in-out infinite;
+      pointer-events: none;
+    }
+    .console-title {
+      font-size: 0.8rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: #9ca3af;
+      margin-bottom: 0.75rem;
+    }
+    .console-line {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.85rem;
+      color: var(--ink-2);
+      margin-bottom: 0.45rem;
+    }
+    .console-line span:last-child { color: var(--muted); font-size: 0.8rem; }
+    .console-badge { margin-top: 0.85rem; font-size: 0.8rem; color: var(--accent); }
+    .lock-box {
+      border-radius: 18px;
+      border: 1px dashed rgba(75,85,99,0.9);
+      padding: 0.75rem 0.9rem;
+      font-size: 0.85rem;
+      color: #9ca3af;
+      margin-top: 1rem;
+      background: radial-gradient(circle at top left, rgba(15,23,42,0.9) 0, #020617 60%);
+    }
+
+    /* CODE */
+    .code-block {
+      border-radius: 18px;
+      background: radial-gradient(circle at top left, #091226 0, #050a16 60%);
+      border: 1px solid rgba(55,65,81,0.9);
+      padding: 1rem 1.1rem;
+      text-align: left;
+      font-family: "SF Mono", Menlo, Monaco, Consolas, monospace;
+      font-size: 0.8rem;
+      color: var(--ink-2);
+      box-shadow: 0 24px 60px rgba(0,0,0,0.9);
+      position: relative;
+      overflow: hidden;
+    }
+    .code-title {
+      position: absolute;
+      top: 0.75rem;
+      right: 1rem;
+      font-size: 0.7rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: #4b5563;
+    }
+    .code-block pre { margin-top: 1.2rem; white-space: pre; }
+
+    .footer-note { font-size: 0.85rem; color: var(--muted); margin-top: 1.5rem; }
+    .final-logo {
+      font-size: clamp(2.8rem, 6vw, 3.6rem);
+      letter-spacing: 0.4em;
+      text-transform: uppercase;
+      margin-top: 1.5rem;
+    }
+    .final-tagline {
+      margin-top: 1.25rem;
+      font-size: 0.95rem;
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      color: var(--muted);
+    }
+
+    /* ANIMATIONS */
+    @keyframes frameGlow { 0%,100% {opacity: .06;} 50% {opacity: .35;} }
+
+    @media (max-width: 1000px) {
+      .split-layout { grid-template-columns: minmax(0,1fr); }
+      .chain-grid { grid-template-columns: minmax(0,1fr); }
+    }
+    @media (max-width: 900px) {
+      .slide { padding: 5rem 1.2rem 4rem; }
+    }
+
+    /* Reduced motion */
+    @media (prefers-reduced-motion: reduce) {
+      #bg-canvas { display:none; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="bg-canvas" aria-hidden="true"></canvas>
+  <main class="page">
+
+    <!-- HERO – not counted in the 15 sections -->
+    <section class="slide" id="slide-hero">
+      <div class="slide-inner">
+        <div class="slide-kicker">ΔTIME · LAUNCH EVENT</div>
+        <h1>“Today… we’re going to reinvent reality itself.”</h1>
+        <div class="divider"></div>
+        <p>
+          Not an app. Not a service. Not a feature.
+          A new substrate for how humans connect, pay, work and exist together.
+        </p>
+        <div class="canvas-frame" aria-label="Hero — ΔTime Field">
+          <div class="canvas-label">ΔFIELD</div>
+          <canvas class="cnv" id="cnv-hero" data-canvas="hero"></canvas>
+          <div class="canvas-hint">Auto-play · Interactive ripples on click</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 1. From Internet as Data → Internet as Time -->
+    <section class="slide" id="slide-1">
+      <div class="slide-inner">
+        <h2>For 50 years, the world ran on one primitive idea: <span class="highlight">data</span>.</h2>
+        <div class="divider"></div>
+        <p class="big-chain">DATA → APPS → CLOUD → SERVERS → COMPANIES</p>
+        <p class="slide-note fade">
+          We captured everything as files, packets and logs. We built towers, fiber and warehouses — just to push bits around.
+        </p>
+        <h2 style="margin-top:1.2rem;">But what if… that was the wrong direction?</h2>
+        <p class="fade" style="margin-top:0.5rem; text-transform:uppercase; letter-spacing:0.18em;">
+          THE INTERNET AS DATA IS OVER
+        </p>
+        <h1 class="highlight" style="margin-top:1.2rem;">Welcome to the Internet as Time.</h1>
+        <p class="slide-tagline">We don’t push data. We sync reality.</p>
+
+        <div class="canvas-frame" aria-label="Phone Sync Simulation">
+          <div class="canvas-label">DEMO · PHONE SYNC</div>
+          <canvas class="cnv" id="cnv-phone" data-canvas="phoneSync"></canvas>
+          <div class="canvas-hint">Tap inside to emit a sync pulse</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. ΔTIME — Time-Native Computing Layer -->
+    <section class="slide" id="slide-2">
+      <div class="slide-inner">
+        <h2>“Not faster. Not smarter. Not bigger. <br/>We moved computation into time itself.”</h2>
+        <div class="divider"></div>
+        <p>
+          For 50 years, computing tried to shrink transistors. We stopped chasing nanometers… and moved compute into ΔTIME.
+        </p>
+        <p class="big-chain" style="margin-top:1.1rem;">0 nm — Computation inside time.</p>
+        <div class="canvas-frame" aria-label="ΔTIME Consequences">
+          <div class="canvas-label">ΔTIME · CONSEQUENCES</div>
+          <canvas class="cnv" id="cnv-conseq" data-canvas="consequences"></canvas>
+          <div class="canvas-hint">Auto-play highlights: 0 ms · 0 frames · 0 buffers…</div>
+        </div>
+        <p style="margin-top:1.1rem;">
+          Immediate consequences: 0 ms reflex · 0 frames · 0 buffers · 0 waste · 10¹³–10¹⁴ Ops/J (Moran’s Law) · Physics-native MRV · Beyond GPU/TPU.
+        </p>
+        <p class="footer-note">ΔTIME is the everything substrate — the fabric where reality, identity, money, and communication become one continuous time‑field.</p>
+      </div>
+    </section>
+
+    <!-- 3. Max8 — The Reflex Engine -->
+    <section class="slide" id="slide-3">
+      <div class="slide-inner">
+        <h2>Max8 — The Reflex Engine</h2>
+        <div class="divider"></div>
+        <p>Not a CPU. Not a GPU. Not a “model”. Max8 reacts to reality like a nervous system.</p>
+        <div class="canvas-frame" aria-label="Max8 Reflex Loop">
+          <div class="canvas-label">MAX8 · REFLEX LOOP</div>
+          <canvas class="cnv" id="cnv-max8" data-canvas="max8Reflex"></canvas>
+          <div class="canvas-hint">Stimulus → Spike → Action (interactive: move mouse)</div>
+        </div>
+        <p style="margin-top:1.1rem;">
+          Reflex core (event‑driven, 0 ms loop) · Spike learning in real time · Zero‑frame rendering · Quantum‑inspired sampling · ReRAM pathways · Embedded MRV.
+        </p>
+      </div>
+    </section>
+
+    <!-- 4. ΔAGI — The Mind of ΔWorlds -->
+    <section class="slide" id="slide-4">
+      <div class="slide-inner">
+        <h2>ΔAGI — The Mind of ΔWorlds</h2>
+        <div class="divider"></div>
+        <p>
+          LLMs predict text. “World models” simulate frames. ΔAGI lives inside physics — generating actions & decisions on ΔTIME + Max8.
+        </p>
+        <div class="canvas-frame" aria-label="ΔAGI Orchestrator">
+          <div class="canvas-label">ΔAGI · ORCHESTRATION</div>
+          <canvas class="cnv" id="cnv-dagi" data-canvas="dagi"></canvas>
+          <div class="canvas-hint">Agents firing across worlds</div>
+        </div>
+        <p class="footer-note">
+          World‑Native General Intelligence: understands people, streets, money, motion, time; close to sensors; reflexive & self‑aware; learns from ΔEvents in real time.
+        </p>
+      </div>
+    </section>
+
+    <!-- 5. ΔWorlds — Personal OS -->
+    <section class="slide" id="slide-5">
+      <div class="slide-inner">
+        <h2>ΔWorlds — Personal OS for Reality</h2>
+        <div class="divider"></div>
+        <p>What if every human had their own operating system? Not an app — a <span class="highlight">world</span>.</p>
+        <div class="canvas-frame" aria-label="8 Worlds Orb">
+          <div class="canvas-label">ΔWORLDS · PERSONAL OS</div>
+          <canvas class="cnv" id="cnv-worlds" data-canvas="eightWorlds"></canvas>
+          <div class="canvas-hint">YOU at center · 8 orbiting worlds</div>
+        </div>
+        <p class="footer-note">HOME · PAY · BUSINESS · PEOPLE · SERVICE · COMM · AI · SYNC — Eight worlds · One person · Complete sovereignty.</p>
+      </div>
+    </section>
+
+    <!-- 6. ΔInternet · Human Mesh -->
+    <section class="slide" id="slide-6">
+      <div class="slide-inner">
+        <h2>ΔInternet · Human Mesh — when people become the network</h2>
+        <div class="divider"></div>
+        <p>Streets, buses, shops, homes. Every phone becomes a node, relay and gateway in a living human mesh.</p>
+        <div class="canvas-frame" aria-label="Human Mesh">
+          <div class="canvas-label">MESH · CITY</div>
+          <canvas class="cnv" id="cnv-mesh" data-canvas="humanMesh"></canvas>
+          <div class="canvas-hint">Nodes wake up · connections light as density grows</div>
+        </div>
+        <p class="slide-note">No towers. No servers. No SIM cards. No cloud. Just humans… as the internet.</p>
+      </div>
+    </section>
+
+    <!-- 7. ΔComm · Teleport -->
+    <section class="slide" id="slide-7">
+      <div class="slide-inner">
+        <h2>ΔComm · Teleport — from “video call” to <span class="highlight">0‑Data presence</span></h2>
+        <div class="divider"></div>
+        <div class="split-layout">
+          <div class="console">
+            <div class="console-title">TRADITIONAL CALL</div>
+            <div class="console-line"><span>Video stream</span><span>Data flood</span></div>
+            <div class="console-line"><span>Audio packets</span><span>Latency &amp; jitter</span></div>
+            <div class="console-line"><span>Server relay</span><span>Full content stored</span></div>
+            <div class="lock-box">Traditional video call = <span class="highlight">data flood</span>. Every frame leaves your device.</div>
+          </div>
+          <div class="console">
+            <div class="console-title">ΔPHASE TELEPORT</div>
+            <div class="console-line"><span>Phase pulses</span><span>6–9 bits</span></div>
+            <div class="console-line"><span>Local reconstruction</span><span>No raw stream</span></div>
+            <div class="console-line"><span>Device‑to‑device</span><span>No content servers</span></div>
+            <div class="lock-box">Teleport = <span class="highlight">Phase sync</span>. No data crosses — only the physics needed to recreate the moment.</div>
+          </div>
+        </div>
+        <div class="canvas-frame" aria-label="Teleport Phase">
+          <div class="canvas-label">ΔPHASE · TELEPORT</div>
+          <canvas class="cnv" id="cnv-teleport" data-canvas="teleport"></canvas>
+          <div class="canvas-hint">Click to toggle between Data Mode / ΔPhase Mode</div>
+        </div>
+        <p class="slide-tagline" style="margin-top:1.2rem;">Toggle the world from “Data Mode” to “ΔPhase Mode”.</p>
+      </div>
+    </section>
+
+    <!-- 8. Money as Physics — ΔTime Payments -->
+    <section class="slide" id="slide-8">
+      <div class="slide-inner">
+        <h2>Money as Physics — ΔTime Payments</h2>
+        <div class="divider"></div>
+        <p>SOUND → LIGHT → MOTION → ΔPHASE · A payment becomes a pulse. A receipt becomes a signature. A currency becomes coherence.</p>
+        <div class="canvas-frame" aria-label="Shekel→Euro Beam">
+          <div class="canvas-label">ΔPAY · ₪ → €</div>
+          <canvas class="cnv" id="cnv-pay" data-canvas="payments"></canvas>
+          <div class="canvas-hint">Beam carries ΔSignature across</div>
+        </div>
+        <div class="chain-grid">
+          <div class="chain-card">
+            <div class="chain-label">STEP · 01</div>
+            <h3>LOAD IN ISRAEL</h3>
+            <p>Phone in Tel Aviv: “Load ₪200”. Cash digitized into ΔWallet. Source: <span class="highlight">Cash‑in · Card · POS</span>.</p>
+          </div>
+          <div class="chain-card">
+            <div class="chain-label">STEP · 02</div>
+            <h3>MOVE THROUGH ΔTIME</h3>
+            <p>Beam of signed ΔPhase: <span class="highlight">ΔSignature · FX by ΔTime · MRV</span>. No IBAN. Proof of value in motion.</p>
+          </div>
+          <div class="chain-card">
+            <div class="chain-label">STEP · 03</div>
+            <h3>SPEND IN EUROPE</h3>
+            <p>Store in Berlin: “Received €51.40”. Merchant never touched your bank — ΔWallet settles in local currency.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 9. ΔSignature & MRV -->
+    <section class="slide" id="slide-9">
+      <div class="slide-inner">
+        <h2>ΔSignature &amp; MRV — Physics‑Based Trust</h2>
+        <div class="divider"></div>
+        <p>Instead of saving data, ΔTIME signs the fact that something physically happened — and anchors it in time.</p>
+        <div class="canvas-frame" aria-label="ΔSignature Lissajous">
+          <div class="canvas-label">ΔSIGNATURE · MRV</div>
+          <canvas class="cnv" id="cnv-sign" data-canvas="signature"></canvas>
+          <div class="canvas-hint">Unique phase fingerprint · hover to perturb</div>
+        </div>
+        <div class="chain-grid">
+          <div class="chain-card"><div class="chain-label">01</div><h3>ACTION</h3><p>A tap, a payment, a call, an agreement — captured as a time‑event.</p></div>
+          <div class="chain-card"><div class="chain-label">02</div><h3>ΔSIGNATURE</h3><p>ΔPulse + phase profile + coherence state. Unforgeable physical fingerprint.</p></div>
+          <div class="chain-card"><div class="chain-label">03</div><h3>MRV SNAPSHOT</h3><p>Measure · Report · Verify — cryptographically signed proof reality behaved as claimed.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 10. ΔAudit -->
+    <section class="slide" id="slide-10">
+      <div class="slide-inner">
+        <h2>ΔAudit — Law &amp; Regulation, without surveillance</h2>
+        <div class="divider"></div>
+        <p>Governments don’t need your messages. They need proofs that flows are legal, taxes are paid and crime is rare.</p>
+        <div class="split-layout">
+          <div class="console">
+            <div class="console-title">GOVERNMENT CONSOLE</div>
+            <div class="console-line"><span>Total economic flow today</span><span>Aggregated</span></div>
+            <div class="console-line"><span>Taxable events</span><span>Anonymized</span></div>
+            <div class="console-line"><span>Fraud alerts</span><span>0.001% flagged</span></div>
+            <div class="console-badge">ΔAudit Key — proofs, not people.</div>
+          </div>
+          <div class="console">
+            <div class="console-title">WHAT THEY NEVER SEE</div>
+            <div class="lock-box">
+              No chat logs.<br/>No call content.<br/>No personal trails.<br/>
+              Only ΔSignatures and MRV snapshots that pass legal policy checks.
+            </div>
+          </div>
+        </div>
+        <div class="canvas-frame" aria-label="ΔAudit Shield">
+          <div class="canvas-label">ΔAUDIT · SHIELD</div>
+          <canvas class="cnv" id="cnv-audit" data-canvas="audit"></canvas>
+          <div class="canvas-hint">Shield pulses for passing checks</div>
+        </div>
+        <p class="slide-tagline">Law stays strong. Privacy stays intact.</p>
+      </div>
+    </section>
+
+    <!-- 11. LCX — Life Cookie Exchange -->
+    <section class="slide" id="slide-11">
+      <div class="slide-inner">
+        <h2>LCX — Life Cookie Exchange (The Economy of Reality)</h2>
+        <div class="divider"></div>
+        <p>Every real‑world change becomes an asset you can hold, trade, and spend. LCX — the world’s first market for verified reality.</p>
+        <div class="canvas-frame" aria-label="LCX Market Ticker">
+          <div class="canvas-label">LCX · TICKER</div>
+          <canvas class="cnv" id="cnv-lcx" data-canvas="lcx"></canvas>
+          <div class="canvas-hint">Live‑style price ribbons for Life Cookies</div>
+        </div>
+        <p class="footer-note">
+          SafeDrive‑LC · ΔEnergy‑LC · GreenGarden‑LC · BuildFence‑LC · FocusWork‑LC — value from reality, not data.
+        </p>
+      </div>
+    </section>
+
+    <!-- 12. ΔSDK — Build Directly On Time -->
+    <section class="slide" id="slide-12">
+      <div class="slide-inner">
+        <h2>ΔSDK — Build directly on time</h2>
+        <div class="divider"></div>
+        <p>Developers plug into ΔPhase, ΔID, ΔWallet, ΔMesh — building apps that run at 0 ms, offline, on the human mesh.</p>
+        <div class="code-block">
+          <div class="code-title">ΔWORLD APP · EXAMPLE</div>
+<pre>// Create your first ΔWorld app
+npx create-dtime-world my-first-world
+
+// Inside your app:
+import { usePhase, useWallet, teleport } from "@dtime/sdk";
+
+usePhase((phase) => {
+  teleport.render(phase);    // 0-Data presence
+  useWallet().settle(phase); // physics-based payments
+});</pre>
+        </div>
+        <p class="footer-note">Runs offline · No servers required · 0 ms reflex loop · Built on ΔPhase &amp; ΔMesh. This is not “cloud‑native”. It’s <span class="highlight">time‑native</span>.</p>
+      </div>
+    </section>
+
+    <!-- 13. Max8Browser — The Conscious Interface -->
+    <section class="slide" id="slide-13">
+      <div class="slide-inner">
+        <h2>Max8Browser — The Conscious Interface</h2>
+        <div class="divider"></div>
+        <p>See intelligence itself — reflex loop, state charts, agent graph, structural self‑awareness, capability inspector.</p>
+        <div class="canvas-frame" aria-label="Max8Browser UI Sketch">
+          <div class="canvas-label">MAX8BROWSER · UI</div>
+          <canvas class="cnv" id="cnv-browser" data-canvas="browser"></canvas>
+          <div class="canvas-hint">Panels animate as tasks move through the loop</div>
+        </div>
+        <p class="footer-note">The Macintosh moment of AGI — making ΔAGI’s inner life visible, debuggable, and trustworthy.</p>
+      </div>
+    </section>
+
+    <!-- 14. Capsule Chiplets — Hardware Generation -->
+    <section class="slide" id="slide-14">
+      <div class="slide-inner">
+        <h2>Capsule Chiplets — The Hardware Generation</h2>
+        <div class="divider"></div>
+        <p>Max8 Reflex Chiplet: Spike cores · Time‑native scheduler · Embedded MRV · ReRAM pathways · Zero‑frame rendering · Nanojoule compute.</p>
+        <div class="canvas-frame" aria-label="Capsule Chiplet Diagram">
+          <div class="canvas-label">MAX8 · CAPSULE</div>
+          <canvas class="cnv" id="cnv-chip" data-canvas="chiplet"></canvas>
+          <div class="canvas-hint">Hover to reveal subsystems</div>
+        </div>
+        <p class="footer-note">This is the A4‑for‑iPhone moment — but for the entire AGI &amp; infrastructure world.</p>
+      </div>
+    </section>
+
+    <!-- 15. Final -->
+    <section class="slide" id="slide-15">
+      <div class="slide-inner">
+        <h2>So… what are we really launching today?</h2>
+        <div class="divider"></div>
+        <p>A new internet (ΔInternet · Human Mesh) · A new money (ΔPayments + LCX) · A new OS (ΔWorlds) · A new intelligence (ΔAGI on ΔTIME + Max8) · A new economic layer where reality is liquid.</p>
+        <div class="canvas-frame" aria-label="Final — ΔTIME Mark">
+          <div class="canvas-label">ΔTIME</div>
+          <canvas class="cnv" id="cnv-final" data-canvas="final"></canvas>
+          <div class="canvas-hint">Click for Δ‑ripple</div>
+        </div>
+        <div class="final-logo">ΔTIME</div>
+        <p class="final-tagline">THE EVERYTHING ENGINE</p>
+        <p class="footer-note">Reality · Money · Identity · Internet · Worlds — all generated from time itself.<br/>“Thank you. Welcome to the new reality.”</p>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    // Respect reduced motion
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    // ---------- Intersection Observer for slide reveal ----------
+    const slides = document.querySelectorAll('.slide');
+    const slideObserver = new IntersectionObserver((entries)=>{
+      entries.forEach(e=>{ if(e.isIntersecting) e.target.classList.add('is-visible'); });
+    }, { threshold: 0.25 });
+    slides.forEach(s=>slideObserver.observe(s));
+
+    // ---------- Utility: Canvas Manager ----------
+    class CanvasAnim {
+      constructor(canvas, drawFn){
+        this.canvas = canvas;
+        this.ctx = canvas.getContext('2d');
+        this.drawFn = drawFn;
+        this.running = false;
+        this.t0 = 0;
+        this.pointer = {x: 0, y: 0, active:false};
+        this.resize = this.resize.bind(this);
+        this.frame = this.frame.bind(this);
+        window.addEventListener('resize', this.resize);
+        canvas.addEventListener('pointermove', (e)=>{
+          const r = canvas.getBoundingClientRect();
+          this.pointer.x = (e.clientX - r.left);
+          this.pointer.y = (e.clientY - r.top);
+          this.pointer.active = true;
+        });
+        canvas.addEventListener('pointerleave', ()=>{ this.pointer.active = false; });
+        this.resize();
+        this.observe();
+      }
+      observe(){
+        const io = new IntersectionObserver((entries)=>{
+          entries.forEach(e=>{
+            if(e.isIntersecting && !this.running){
+              this.running = true;
+              this.t0 = performance.now();
+              if(!prefersReducedMotion) requestAnimationFrame(this.frame);
+            }else if(!e.isIntersecting && this.running){
+              this.running = false;
+            }
+          });
+        }, {threshold: 0.15});
+        io.observe(this.canvas);
+      }
+      resize(){
+        const dpr = Math.min(2, window.devicePixelRatio || 1);
+        const w = this.canvas.clientWidth;
+        const h = this.canvas.clientHeight;
+        this.canvas.width = Math.max(2, w * dpr);
+        this.canvas.height = Math.max(2, h * dpr);
+        this.ctx.setTransform(dpr,0,0,dpr,0,0);
+      }
+      frame(t){
+        if(!this.running) return;
+        const et = (t - this.t0) / 1000;
+        this.drawFn(this.ctx, this.canvas.clientWidth, this.canvas.clientHeight, et, this.pointer, this.canvas);
+        requestAnimationFrame(this.frame);
+      }
+    }
+
+    // ---------- Background canvas (stars + soft orbit) ----------
+    (function(){
+      const c = document.getElementById('bg-canvas');
+      if(!c) return;
+      const ctx = c.getContext('2d');
+      let stars = [];
+      function resize(){
+        const dpr = Math.min(2, window.devicePixelRatio || 1);
+        c.width = innerWidth * dpr;
+        c.height = innerHeight * dpr;
+        ctx.setTransform(dpr,0,0,dpr,0,0);
+        // regenerate stars
+        stars = Array.from({length: 120}, ()=> ({
+          x: Math.random()*innerWidth,
+          y: Math.random()*innerHeight,
+          r: Math.random()*1.6 + .2,
+          a: Math.random()*Math.PI*2,
+          s: .15 + Math.random()*.5
+        }));
+      }
+      function draw(t){
+        if(prefersReducedMotion){ ctx.clearRect(0,0,innerWidth,innerHeight); return; }
+        ctx.clearRect(0,0,innerWidth,innerHeight);
+        // faint radial
+        const g = ctx.createRadialGradient(innerWidth*0.5, innerHeight*0.2, 0, innerWidth*0.5, innerHeight*0.2, Math.max(innerWidth, innerHeight));
+        g.addColorStop(0, 'rgba(56,189,248,0.05)');
+        g.addColorStop(1, 'rgba(2,6,23,0)');
+        ctx.fillStyle = g;
+        ctx.fillRect(0,0,innerWidth,innerHeight);
+        // stars
+        ctx.save();
+        stars.forEach(s=>{
+          s.a += 0.002 * s.s;
+          const tw = (Math.sin(t*0.0005 + s.a)+1)/2;
+          ctx.globalAlpha = 0.35 + tw*0.65;
+          ctx.beginPath();
+          ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+          ctx.fillStyle = 'rgba(226,240,255,0.85)';
+          ctx.fill();
+        });
+        ctx.restore();
+        requestAnimationFrame(draw);
+      }
+      window.addEventListener('resize', resize);
+      resize();
+      requestAnimationFrame(draw);
+    })();
+
+    // ---------- Drawing functions for per-section canvases ----------
+    const Draw = {
+      hero(ctx,w,h,t,ptr) {
+        ctx.clearRect(0,0,w,h);
+        // center ripple
+        const cx=w/2, cy=h/2;
+        const rings=6;
+        for(let i=0;i<rings;i++){
+          const R = (i + (Math.sin(t*0.6)+1)/2)* (Math.min(w,h)/6);
+          ctx.beginPath();
+          ctx.arc(cx, cy, R, 0, Math.PI*2);
+          ctx.strokeStyle = `rgba(56,189,248,${0.24 - i*0.03})`;
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+        }
+        // pointer ripple
+        if(ptr.active){
+          for(let r=0;r<4;r++){
+            const RR = (r + (t*1.5)%1) * 90;
+            ctx.beginPath();
+            ctx.arc(ptr.x, ptr.y, RR, 0, Math.PI*2);
+            ctx.strokeStyle = `rgba(168,85,247,${0.35 - r*0.07})`;
+            ctx.lineWidth = 1;
+            ctx.stroke();
+          }
+        }
+        // soft delta glyph
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(Math.sin(t*0.2)*0.1);
+        ctx.beginPath();
+        ctx.moveTo(0, -40);
+        ctx.lineTo(40, 40);
+        ctx.lineTo(-40, 40);
+        ctx.closePath();
+        ctx.strokeStyle = 'rgba(229,243,255,0.35)';
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+        ctx.restore();
+      },
+
+      phoneSync(ctx,w,h,t,ptr,canvas){
+        ctx.clearRect(0,0,w,h);
+        const px = w*0.3, py=h*0.5, qx=w*0.7, qy=h*0.5;
+        // phones
+        function phone(x,y){
+          const r=18; const ww=120, hh=200;
+          ctx.beginPath();
+          ctx.moveTo(x-ww/2+r, y-hh/2);
+          ctx.lineTo(x+ww/2-r, y-hh/2);
+          ctx.quadraticCurveTo(x+ww/2, y-hh/2, x+ww/2, y-hh/2+r);
+          ctx.lineTo(x+ww/2, y+hh/2-r);
+          ctx.quadraticCurveTo(x+ww/2, y+hh/2, x+ww/2-r, y+hh/2);
+          ctx.lineTo(x-ww/2+r, y+hh/2);
+          ctx.quadraticCurveTo(x-ww/2, y+hh/2, x-ww/2, y+hh/2-r);
+          ctx.lineTo(x-ww/2, y-hh/2+r);
+          ctx.quadraticCurveTo(x-ww/2, y-hh/2, x-ww/2+r, y-hh/2);
+          ctx.closePath();
+          ctx.strokeStyle='rgba(148,163,184,0.8)'; ctx.lineWidth=1.5; ctx.stroke();
+        }
+        phone(px,py); phone(qx,qy);
+
+        // pulse params
+        canvas.__pulse = canvas.__pulse || 0;
+        canvas.addEventListener('click', ()=>{ canvas.__pulse = 1.0; });
+        const k = Math.max(0, canvas.__pulse);
+        canvas.__pulse = Math.max(0, k - 0.02);
+
+        // emit rings
+        function rings(x,y,baseHue){
+          for(let i=0;i<3;i++){
+            const R = 15 + (t*60 + i*20 + (1-k)*50)%160;
+            ctx.beginPath();
+            ctx.arc(x,y,R,0,Math.PI*2);
+            const a = 0.35 - i*0.1;
+            ctx.strokeStyle = `rgba(${baseHue},${a})`;
+            ctx.lineWidth = 1;
+            ctx.stroke();
+          }
+        }
+        rings(px,py,'56,189,248'); // blue
+        rings(qx,qy,'168,85,247'); // purple
+
+        // link line shimmer (phase alignment)
+        const dash = 6 + Math.sin(t*4)*2;
+        ctx.setLineDash([dash, dash*1.6]);
+        ctx.beginPath();
+        ctx.moveTo(px,py); ctx.lineTo(qx,qy);
+        ctx.strokeStyle='rgba(56,189,248,0.45)'; ctx.lineWidth=1.5; ctx.stroke();
+        ctx.setLineDash([]);
+      },
+
+      consequences(ctx,w,h,t){
+        ctx.clearRect(0,0,w,h);
+        const items = ['0 ms reflex','0 frames','0 buffers','0 waste','10¹³–10¹⁴ Ops/J','MRV native','Beyond GPU/TPU'];
+        const cw = w * 0.9, ch = h * 0.7;
+        const x = (w - cw)/2, y = (h - ch)/2;
+        ctx.strokeStyle = 'rgba(148,163,184,0.45)'; ctx.lineWidth=1;
+        ctx.strokeRect(x,y,cw,ch);
+        items.forEach((txt,i)=>{
+          const yy = y + 28 + i*22 + Math.sin(t*2 + i)*2;
+          ctx.fillStyle = `rgba(229,231,235,${0.85 - i*0.06})`;
+          ctx.font = '12px system-ui, -apple-system, sans-serif';
+          ctx.fillText('• '+txt, x+18, yy);
+        });
+        // diagonal light sweep
+        ctx.save();
+        ctx.translate(w/2,h/2);
+        ctx.rotate(-0.35);
+        const grad = ctx.createLinearGradient(-cw,0,cw,0);
+        grad.addColorStop(0,'rgba(56,189,248,0)');
+        grad.addColorStop(0.5,'rgba(56,189,248,0.08)');
+        grad.addColorStop(1,'rgba(56,189,248,0)');
+        ctx.fillStyle = grad;
+        ctx.fillRect(-cw, -ch, cw*2, ch*2);
+        ctx.restore();
+      },
+
+      max8Reflex(ctx,w,h,t,ptr){
+        ctx.clearRect(0,0,w,h);
+        const cx=w/2, cy=h/2;
+        // stimulus (pointer)
+        if(ptr.active){
+          ctx.beginPath();
+          ctx.arc(ptr.x, ptr.y, 6, 0, Math.PI*2);
+          ctx.fillStyle='rgba(249,115,22,0.9)'; ctx.fill();
+        }
+        // spike lines toward center
+        for(let i=0;i<14;i++){
+          const a = i/14 * Math.PI*2 + t*0.4;
+          const R = 60 + Math.sin(t*2+i)*20;
+          const x = cx + Math.cos(a)*R;
+          const y = cy + Math.sin(a)*R;
+          ctx.beginPath();
+          ctx.moveTo(cx,cy);
+          ctx.lineTo(x,y);
+          ctx.strokeStyle='rgba(168,85,247,0.4)'; ctx.lineWidth=1;
+          ctx.stroke();
+        }
+        // central reflex node
+        ctx.beginPath(); ctx.arc(cx,cy,20 + Math.sin(t*3)*2, 0, Math.PI*2);
+        ctx.strokeStyle='rgba(56,189,248,0.8)'; ctx.lineWidth=2; ctx.stroke();
+        // action ring
+        for(let r=0; r<3; r++){
+          ctx.beginPath(); ctx.arc(cx,cy,60+r*22 + (t*60)%22, 0, Math.PI*2);
+          ctx.strokeStyle=`rgba(34,197,94,${0.28 - r*0.07})`;
+          ctx.lineWidth=1; ctx.stroke();
+        }
+      },
+
+      dagi(ctx,w,h,t){
+        ctx.clearRect(0,0,w,h);
+        const centers = [
+          {x:w*0.2,y:h*0.5,label:'PEOPLE'},
+          {x:w*0.5,y:h*0.25,label:'MONEY'},
+          {x:w*0.8,y:h*0.5,label:'STREETS'},
+          {x:w*0.5,y:h*0.8,label:'TIME'}
+        ];
+        // links
+        ctx.strokeStyle='rgba(148,163,184,0.35)';
+        centers.forEach((a,i)=>{
+          centers.slice(i+1).forEach(b=>{
+            ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
+          });
+        });
+        // pulse around each
+        centers.forEach((c,i)=>{
+          const R = 18 + (Math.sin(t*1.5 + i)+1)/2*10;
+          ctx.beginPath(); ctx.arc(c.x,c.y,R,0,Math.PI*2);
+          ctx.strokeStyle='rgba(56,189,248,0.6)'; ctx.lineWidth=1.5; ctx.stroke();
+          ctx.fillStyle='rgba(226,240,255,0.9)';
+          ctx.font='10px system-ui'; ctx.textAlign='center'; ctx.fillText(c.label, c.x, c.y-26);
+        });
+        // orchestrator center
+        ctx.beginPath(); ctx.arc(w/2,h/2,22,0,Math.PI*2);
+        ctx.strokeStyle='rgba(168,85,247,0.7)'; ctx.lineWidth=2; ctx.stroke();
+        ctx.font='12px system-ui'; ctx.fillStyle='rgba(226,240,255,0.95)'; ctx.textAlign='center';
+        ctx.fillText('ΔAGI', w/2, h/2+4);
+      },
+
+      eightWorlds(ctx,w,h,t){
+        ctx.clearRect(0,0,w,h);
+        const cx=w/2, cy=h/2;
+        // central YOU
+        ctx.beginPath(); ctx.arc(cx,cy,26,0,Math.PI*2);
+        ctx.strokeStyle='rgba(229,243,255,0.9)'; ctx.lineWidth=1.5; ctx.stroke();
+        ctx.font='10px system-ui'; ctx.fillStyle='rgba(11,17,32,0.9)';
+        // halo
+        for(let i=0;i<3;i++){
+          ctx.beginPath(); ctx.arc(cx,cy,38+i*10 + (t*40)%10,0,Math.PI*2);
+          ctx.strokeStyle=`rgba(56,189,248,${0.25 - i*0.07})`; ctx.lineWidth=1; ctx.stroke();
+        }
+        // orbits
+        ctx.strokeStyle='rgba(148,163,184,0.35)';
+        ctx.beginPath(); ctx.arc(cx,cy,80,0,Math.PI*2); ctx.stroke();
+        ctx.beginPath(); ctx.arc(cx,cy,110,0,Math.PI*2); ctx.stroke();
+
+        const labels = ['HOME','PAY','BUSINESS','PEOPLE','SERVICE','COMM','AI','SYNC'];
+        for(let i=0;i<8;i++){
+          const a = i/8*Math.PI*2 + t*0.3;
+          const R = 95 + Math.sin(t*0.8+i)*6;
+          const x = cx + Math.cos(a)*R;
+          const y = cy + Math.sin(a)*R;
+          ctx.beginPath(); ctx.arc(x,y,14,0,Math.PI*2);
+          ctx.fillStyle='rgba(226,240,255,0.95)'; ctx.fill();
+          ctx.strokeStyle='rgba(148,163,184,0.6)'; ctx.stroke();
+          ctx.fillStyle='rgba(2,6,23,0.9)'; ctx.font='9px system-ui'; ctx.textAlign='center';
+          ctx.fillText(labels[i], x, y+3);
+          // tether
+          ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(x,y);
+          ctx.strokeStyle='rgba(56,189,248,0.25)'; ctx.stroke();
+        }
+      },
+
+      humanMesh(ctx,w,h,t){
+        ctx.clearRect(0,0,w,h);
+        const N = 80;
+        const nodes = [];
+        for(let i=0;i<N;i++){
+          const a = i/N*Math.PI*2;
+          const r = Math.min(w,h)*0.35 + Math.sin(t*0.3 + i)*8;
+          const x = w/2 + Math.cos(a)*r + Math.sin(i*12.9898)*12;
+          const y = h/2 + Math.sin(a)*r + Math.cos(i*78.233)*12;
+          nodes.push({x,y});
+        }
+        // edges
+        ctx.strokeStyle='rgba(56,189,248,0.14)';
+        for(let i=0;i<N;i+=1){
+          for(let j=i+1;j<i+4 && j<N;j++){
+            const a = nodes[i], b = nodes[j];
+            const d = Math.hypot(a.x-b.x, a.y-b.y);
+            if(d<120){
+              ctx.globalAlpha = (120-d)/120 * 0.6;
+              ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
+            }
+          }
+        }
+        // nodes
+        ctx.globalAlpha = 1;
+        nodes.forEach((n,i)=>{
+          ctx.beginPath(); ctx.arc(n.x,n.y, 2 + (Math.sin(t*2+i)+1)/2*1.2, 0, Math.PI*2);
+          ctx.fillStyle='rgba(226,240,255,0.9)'; ctx.fill();
+        });
+      },
+
+      teleport(ctx,w,h,t,ptr,canvas){
+        ctx.clearRect(0,0,w,h);
+        canvas.__phase = canvas.__phase || false;
+        // toggle on click
+        canvas.onclick = ()=> canvas.__phase = !canvas.__phase;
+
+        const left = {x:w*0.25,y:h*0.5}, right={x:w*0.75,y:h*0.5};
+        // avatars
+        function avatar(p,color){
+          ctx.beginPath(); ctx.arc(p.x, p.y-22, 16, 0, Math.PI*2);
+          ctx.fillStyle=color; ctx.fill();
+          ctx.beginPath(); ctx.arc(p.x, p.y+12, 20, Math.PI, 0);
+          ctx.fillStyle=color; ctx.fill();
+        }
+        if(canvas.__phase){
+          // ΔPhase mode: pulses
+          avatar(left,'rgba(226,240,255,0.95)'); avatar(right,'rgba(226,240,255,0.95)');
+          const pulses=4;
+          for(let i=0;i<pulses;i++){
+            const R = (t*120 + i*30)% (right.x-left.x-60);
+            ctx.beginPath();
+            ctx.moveTo(left.x+30+R, h*0.5);
+            ctx.lineTo(left.x+30+R+10, h*0.5);
+            ctx.strokeStyle='rgba(56,189,248,0.9)'; ctx.lineWidth=3; ctx.stroke();
+          }
+          ctx.setLineDash([6,6]);
+          ctx.beginPath(); ctx.moveTo(left.x+24, left.y); ctx.lineTo(right.x-24, right.y);
+          ctx.strokeStyle='rgba(34,197,94,0.6)'; ctx.lineWidth=1.5; ctx.stroke();
+          ctx.setLineDash([]);
+        } else {
+          // Data mode: thick stream
+          avatar(left,'rgba(148,163,184,0.8)'); avatar(right,'rgba(148,163,184,0.8)');
+          ctx.beginPath();
+          ctx.moveTo(left.x+24, left.y-18);
+          ctx.bezierCurveTo(w*0.45,h*0.2, w*0.55,h*0.8, right.x-24,right.y+18);
+          ctx.strokeStyle='rgba(99,102,241,0.55)'; ctx.lineWidth=16; ctx.stroke();
+        }
+      },
+
+      payments(ctx,w,h,t){
+        ctx.clearRect(0,0,w,h);
+        // origin/dest
+        const L={x:w*0.2,y:h*0.6}, R={x:w*0.8,y:h*0.4};
+        // beam
+        const grad = ctx.createLinearGradient(L.x,L.y,R.x,R.y);
+        grad.addColorStop(0,'rgba(255,215,0,0.0)');
+        grad.addColorStop(0.3,'rgba(56,189,248,0.6)');
+        grad.addColorStop(0.7,'rgba(168,85,247,0.6)');
+        grad.addColorStop(1,'rgba(0,200,70,0.0)');
+        ctx.strokeStyle = grad; ctx.lineWidth = 6;
+        ctx.beginPath(); ctx.moveTo(L.x,L.y); ctx.lineTo(R.x,R.y); ctx.stroke();
+
+        // currency markers moving
+        const s = (t*0.6)%1;
+        function mark(p, sym){
+          ctx.save();
+          ctx.translate(p.x, p.y);
+          ctx.rotate(Math.atan2(R.y-L.y, R.x-L.x));
+          ctx.fillStyle='rgba(226,240,255,0.95)';
+          ctx.font='12px system-ui'; ctx.fillText(sym, -6, -8);
+          ctx.restore();
+        }
+        for(let i=0;i<5;i++){
+          const u = (s + i*0.2)%1;
+          const x = L.x + (R.x-L.x)*u, y = L.y + (R.y-L.y)*u;
+          mark({x,y}, u<0.5 ? '₪' : '€');
+        }
+      },
+
+      signature(ctx,w,h,t,ptr){
+        ctx.clearRect(0,0,w,h);
+        // Lissajous curve as physical signature
+        const A=w*0.3, B=h*0.25;
+        const a=3, b=2;
+        const delta = Math.PI/2 + Math.sin(t*0.5)*0.5 + (ptr.active? (ptr.x/w-0.5)*0.8 : 0);
+        ctx.beginPath();
+        for(let i=0;i<=600;i++){
+          const u=i/600*Math.PI*2;
+          const x = w/2 + A * Math.sin(a*u + delta);
+          const y = h/2 + B * Math.sin(b*u);
+          if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+        }
+        ctx.strokeStyle='rgba(56,189,248,0.85)'; ctx.lineWidth=1.5; ctx.stroke();
+        // ticks
+        for(let i=0;i<6;i++){
+          ctx.beginPath(); ctx.arc(w/2, h/2, 30+i*16, 0, Math.PI*2);
+          ctx.strokeStyle=`rgba(168,85,247,${0.25 - i*0.03})`; ctx.lineWidth=1; ctx.stroke();
+        }
+      },
+
+      audit(ctx,w,h,t){
+        ctx.clearRect(0,0,w,h);
+        // shield
+        ctx.save();
+        ctx.translate(w/2, h/2);
+        ctx.beginPath();
+        ctx.moveTo(0,-40);
+        ctx.lineTo(34,-10);
+        ctx.lineTo(26,36);
+        ctx.lineTo(-26,36);
+        ctx.lineTo(-34,-10);
+        ctx.closePath();
+        ctx.strokeStyle='rgba(226,240,255,0.9)'; ctx.lineWidth=1.5; ctx.stroke();
+        // check pulse
+        const s = (Math.sin(t*2)+1)/2;
+        ctx.beginPath();
+        ctx.moveTo(-10,2); ctx.lineTo(-2,12); ctx.lineTo(16,-10);
+        ctx.strokeStyle=`rgba(34,197,94,${0.5 + s*0.5})`; ctx.lineWidth=3; ctx.stroke();
+        ctx.restore();
+      },
+
+      lcx(ctx,w,h,t){
+        ctx.clearRect(0,0,w,h);
+        const items = [
+          {k:'SafeDrive‑LC', c:'rgba(34,197,94,0.9)'},
+          {k:'ΔEnergy‑LC', c:'rgba(56,189,248,0.9)'},
+          {k:'GreenGarden‑LC', c:'rgba(132,204,22,0.9)'},
+          {k:'BuildFence‑LC', c:'rgba(249,115,22,0.9)'},
+          {k:'FocusWork‑LC', c:'rgba(168,85,247,0.9)'}
+        ];
+        const rowH = 28;
+        items.forEach((it,i)=>{
+          const y = 40 + i*rowH;
+          // ribbon
+          ctx.fillStyle='rgba(2,6,23,0.6)'; ctx.fillRect(20,y-14,w-40,22);
+          // price wave
+          ctx.beginPath();
+          for(let x=30;x<w-60;x++){
+            const u = (x/80 + i*0.7 + t*1.2);
+            const yy = y + Math.sin(u)*6;
+            (x===30) ? ctx.moveTo(x,yy) : ctx.lineTo(x,yy);
+          }
+          ctx.strokeStyle=it.c; ctx.lineWidth=2; ctx.stroke();
+          // label
+          ctx.fillStyle='rgba(226,240,255,0.95)';
+          ctx.font='12px system-ui'; ctx.fillText(it.k, 28, y-18);
+          // fake price
+          const price = (100 + 20*Math.sin(t*0.9 + i)).toFixed(2);
+          ctx.fillText('$'+price, w-100, y-18);
+        });
+      },
+
+      browser(ctx,w,h,t){
+        ctx.clearRect(0,0,w,h);
+        // three panels
+        const pad = 16;
+        const pw = (w - pad*4)/3;
+        const ph = h - pad*2;
+        for(let i=0;i<3;i++){
+          const x = pad + i*(pw+pad), y=pad;
+          ctx.fillStyle='rgba(8,13,26,0.7)'; ctx.fillRect(x,y,pw,ph);
+          ctx.strokeStyle='rgba(75,85,99,0.8)'; ctx.strokeRect(x,y,pw,ph);
+          ctx.fillStyle='rgba(148,163,184,0.9)'; ctx.font='11px system-ui';
+          ctx.fillText(['Reflex Loop','Agent Graph','Logs'][i], x+10, y+18);
+        }
+        // moving dot in reflex loop
+        const x0 = pad+ pw/2, y0 = pad + ph/2;
+        const r = Math.min(pw,ph)*0.32;
+        ctx.beginPath();
+        ctx.arc(x0,y0,r,0,Math.PI*2);
+        ctx.strokeStyle='rgba(56,189,248,0.5)'; ctx.stroke();
+        const ang = t*1.8;
+        ctx.beginPath(); ctx.arc(x0 + Math.cos(ang)*r, y0 + Math.sin(ang)*r, 6, 0, Math.PI*2);
+        ctx.fillStyle='rgba(34,197,94,0.9)'; ctx.fill();
+      },
+
+      chiplet(ctx,w,h,t,ptr){
+        ctx.clearRect(0,0,w,h);
+        const cx=w/2, cy=h/2;
+        // package
+        ctx.fillStyle='rgba(8,13,26,0.7)'; ctx.fillRect(cx-140, cy-90, 280, 180);
+        ctx.strokeStyle='rgba(148,163,184,0.8)'; ctx.strokeRect(cx-140, cy-90, 280, 180);
+        // sub blocks
+        const blocks = [
+          {x:-110,y:-60,w:80,h:50, label:'Spike Cores'},
+          {x:30,y:-60,w:90,h:50, label:'MRV Circuits'},
+          {x:-110,y:10,w:90,h:50, label:'ReRAM'},
+          {x:30,y:10,w:90,h:50, label:'Scheduler'}
+        ];
+        blocks.forEach((b,i)=>{
+          const x = cx + b.x, y = cy + b.y;
+          ctx.fillStyle='rgba(2,6,23,0.7)'; ctx.fillRect(x,y,b.w,b.h);
+          ctx.strokeStyle='rgba(75,85,99,0.9)'; ctx.strokeRect(x,y,b.w,b.h);
+          ctx.fillStyle='rgba(226,240,255,0.95)'; ctx.font='11px system-ui';
+          ctx.fillText(b.label, x+8, y+20);
+          // glow on hover
+          if(ptr.active && ptr.x> x && ptr.x<x+b.w && ptr.y>y && ptr.y<y+b.h){
+            ctx.strokeStyle='rgba(56,189,248,0.9)'; ctx.lineWidth=2; ctx.strokeRect(x-2,y-2,b.w+4,b.h+4);
+          }
+        });
+      },
+
+      final(ctx,w,h,t,ptr,canvas){
+        ctx.clearRect(0,0,w,h);
+        const cx=w/2, cy=h/2;
+        // Δ glyph wave
+        for(let i=0;i<8;i++){
+          ctx.save();
+          ctx.translate(cx, cy);
+          ctx.rotate((i/8)*Math.PI*2 + Math.sin(t*0.6)*0.1);
+          ctx.beginPath();
+          const s = 40 + i*10 + Math.sin(t*1.2+i)*6;
+          ctx.moveTo(0,-s); ctx.lineTo(s*0.86, s*0.5); ctx.lineTo(-s*0.86, s*0.5); ctx.closePath();
+          ctx.strokeStyle=`rgba(168,85,247,${0.25 - i*0.02})`;
+          ctx.lineWidth=1; ctx.stroke();
+          ctx.restore();
+        }
+        // click ripple
+        canvas.__r = canvas.__r || 0;
+        canvas.onclick = ()=>{ canvas.__r = 1; };
+        if(canvas.__r>0){
+          const R = (1-canvas.__r)*Math.max(w,h)*0.6;
+          ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2);
+          ctx.strokeStyle='rgba(56,189,248,0.6)'; ctx.lineWidth=2; ctx.stroke();
+          canvas.__r *= 0.96;
+        }
+      }
+    };
+
+    // ---------- Instantiate all canvases ----------
+    document.querySelectorAll('canvas[data-canvas]').forEach(cnv=>{
+      const fn = Draw[cnv.dataset.canvas];
+      if(typeof fn === 'function'){
+        new CanvasAnim(cnv, fn);
+      }
+    });
+
+  </script>
+</body>
+</html>
