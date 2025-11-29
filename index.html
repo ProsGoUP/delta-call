@@ -956,7 +956,31 @@
                 console.error('╚══════════════════════════════════════════╝');
                 console.error('   Error type:', err.type);
                 console.error('   Error message:', err.message || err);
-                // Fallback to WebSocket if PeerJS fails
+                
+                // 🔥 If ID is taken, generate a NEW unique ID and retry!
+                if (err.type === 'unavailable-id') {
+                    console.log('🔄 ID is taken - generating new unique ID...');
+                    // Generate new unique ID
+                    const timestamp = Date.now().toString(36);
+                    const random = Math.random().toString(36).substr(2, 8);
+                    myDeltaId = `Δ-web-${timestamp}-${random}`;
+                    localStorage.setItem('delta_id', myDeltaId);
+                    document.getElementById('myDeltaId').textContent = myDeltaId;
+                    
+                    // Destroy old peer and create new one
+                    if (peer) {
+                        peer.destroy();
+                    }
+                    
+                    // Retry with new ID after short delay
+                    setTimeout(() => {
+                        console.log('🔄 Retrying with new ID:', myDeltaId);
+                        initPeerJS();
+                    }, 500);
+                    return;
+                }
+                
+                // Fallback to WebSocket if PeerJS fails for other reasons
                 if (!webSocket || webSocket.readyState !== WebSocket.OPEN) {
                     connectWebSocket();
                 }
@@ -1233,14 +1257,14 @@
         // ========================================
         
         function initDeltaId() {
-            myDeltaId = localStorage.getItem('delta_id');
-            if (!myDeltaId) {
-                // Generate ΔID using timestamp + random
-                const timestamp = Date.now().toString(36);
-                const random = Math.random().toString(36).substr(2, 8);
-                myDeltaId = `Δ-web-${timestamp}-${random}`;
-                localStorage.setItem('delta_id', myDeltaId);
-            }
+            // 🔥 ALWAYS generate fresh ID to avoid "ID is taken" errors!
+            // Old ID in localStorage might still be registered on PeerJS server
+            const timestamp = Date.now().toString(36);
+            const random = Math.random().toString(36).substr(2, 8);
+            myDeltaId = `Δ-web-${timestamp}-${random}`;
+            localStorage.setItem('delta_id', myDeltaId);
+            
+            console.log('🆔 Generated fresh ΔID:', myDeltaId);
             document.getElementById('myDeltaId').textContent = myDeltaId;
             
             // 🔥 Initialize PeerJS with public signaling - NO PORT FORWARD!
