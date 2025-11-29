@@ -3080,8 +3080,8 @@
                 remoteFrameCtx = remoteFrameCanvas.getContext('2d');
             }
             
-            // Initialize
-            remoteFrameData = null;
+            // 🔥 DON'T reset remoteFrameData - it's initialized in reconstructFromPhase!
+            // remoteFrameData = null;  // <-- REMOVED
             
             // 🔥 Wait for localStream if not ready yet!
             // This happens when DataConnection opens before user clicks "Answer"
