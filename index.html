@@ -2431,7 +2431,23 @@
                 console.log('   peerDataConnection created:', !!peerDataConnection);
                 console.log('   peerDataConnection.open:', peerDataConnection.open);
                 
+                // 🔥 Add timeout for connection!
+                let connectionTimeout = setTimeout(() => {
+                    if (!dataConnectionReady) {
+                        console.error('╔══════════════════════════════════════════╗');
+                        console.error('║ ❌ CONNECTION TIMEOUT (10 seconds)!      ║');
+                        console.error('╚══════════════════════════════════════════╝');
+                        console.error('   Possible causes:');
+                        console.error('   1. Target peer is not connected');
+                        console.error('   2. Target peer ID is wrong');
+                        console.error('   3. Network/firewall blocking');
+                        updateStatus('❌ לא הצלחתי להתחבר - נסה שוב', 'error');
+                        alert('❌ לא הצלחתי להתחבר!\n\nוודא ש:\n1. הצד השני פתוח ומחובר\n2. העתקת את ה-ID הנכון\n3. שני הצדדים מראים "PEERJS CONNECTED"');
+                    }
+                }, 10000);
+                
                 peerDataConnection.on('open', () => {
+                    clearTimeout(connectionTimeout);  // 🔥 Cancel timeout!
                     console.log('╔══════════════════════════════════════════╗');
                     console.log('║ ✅ CALLER: DataConnection OPEN!          ║');
                     console.log('╚══════════════════════════════════════════╝');
@@ -2466,8 +2482,14 @@
                 });
                 
                 peerDataConnection.on('error', (err) => {
-                    console.error('❌ DataConnection ERROR:', err);
+                    console.error('╔══════════════════════════════════════════╗');
+                    console.error('║ ❌ DataConnection ERROR!                 ║');
+                    console.error('╚══════════════════════════════════════════╝');
+                    console.error('   Error:', err);
+                    console.error('   Target peer:', peerId);
+                    console.error('   This usually means the peer is not connected!');
                     dataConnectionReady = false;
+                    updateStatus('❌ שגיאת חיבור', 'error');
                 });
                 
                 peerDataConnection.on('close', () => {
