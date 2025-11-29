@@ -3992,8 +3992,9 @@
         
         // 🔥💀⚡ TEMPORAL RESONANCE: Reconstruct video from phase! ⚡💀🔥
         function reconstructFromPhase(r, g, b, signature, change) {
-            // 🔥 Initialize canvas and frame data if needed!
-            if (!remoteFrameCanvas) {
+            // 🔥 ALWAYS ensure canvas exists!
+            if (!remoteFrameCanvas || !remoteFrameCtx || !remoteFrameData) {
+                console.log('🎬 Creating Phase Reconstruction canvas...');
                 remoteFrameCanvas = document.createElement('canvas');
                 remoteFrameCanvas.width = 320;
                 remoteFrameCanvas.height = 240;
@@ -4013,8 +4014,21 @@
                 const remoteVideo = document.getElementById('remoteVideo');
                 if (remoteVideo) {
                     remoteVideo.srcObject = stream;
+                    console.log('✅ Phase Reconstruction connected to remoteVideo!');
+                } else {
+                    console.error('❌ remoteVideo element not found!');
                 }
-                console.log('🎬 Phase Reconstruction canvas ready!');
+                console.log('🎬 Phase Reconstruction canvas ready - 320x240!');
+            }
+            
+            // 🔥 SAFETY CHECK
+            if (!remoteFrameData || !remoteFrameData.data) {
+                console.error('❌ remoteFrameData is null or invalid!', {
+                    remoteFrameData: remoteFrameData,
+                    remoteFrameCanvas: !!remoteFrameCanvas,
+                    remoteFrameCtx: !!remoteFrameCtx
+                });
+                return;
             }
             
             // 🔥 FAST reconstruction - direct color fill!
