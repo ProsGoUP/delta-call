@@ -632,6 +632,10 @@
         const DELTA_CLOUD_URL = `http://[${DELTA_CLOUD_IPV6}]:${DELTA_CLOUD_PORT}`;
         const DELTA_CLOUD_WS = `ws://[${DELTA_CLOUD_IPV6}]:${DELTA_CLOUD_PORT}`;
         
+        // 🔥 HTTPS pages can't connect to HTTP/WS servers (Mixed Content)!
+        // If we're on HTTPS static host, use PeerJS only (no WebSocket to our server)
+        const canUseWebSocket = !isSecure || !isStaticHost;
+        
         // Use local server if available, otherwise use ΔCLOUD
         const SERVER_URL = isStaticHost ? DELTA_CLOUD_URL : `${window.location.protocol}//${currentHost}`;
         const WS_URL = isStaticHost ? DELTA_CLOUD_WS : `${isSecure ? 'wss:' : 'ws:'}//${currentHost}`;
@@ -639,6 +643,7 @@
         console.log('🔥 ΔNET Gateway:', SERVER_URL);
         console.log('🔌 WebSocket Gateway:', WS_URL);
         console.log('☁️ ΔCLOUD Mode:', isStaticHost ? 'YES (using IPv6)' : 'NO (local server)');
+        console.log('🔒 HTTPS Mode:', isSecure ? 'YES (PeerJS only)' : 'NO (WebSocket available)');
         
         // ΔProtocol State
         let myDeltaId = null;
@@ -4347,14 +4352,21 @@
         
         initDeltaId();
         
-        // 🔥💎⚡ ALWAYS connect to ΔCLOUD WebSocket! ⚡💎🔥
-        // Our server handles signaling for ALL users!
+        // 🔥💎⚡ Connect based on protocol! ⚡💎🔥
         console.log('🌐 Connecting to ΔCLOUD...');
         console.log('   Server:', SERVER_URL);
         console.log('   WebSocket:', WS_URL);
+        console.log('   Can use WebSocket:', canUseWebSocket);
         
-        // Try to connect to our ΔCLOUD server
-        connectWebSocket();
+        // Only connect WebSocket if allowed (not HTTPS to HTTP)
+        if (canUseWebSocket) {
+            console.log('🔌 Connecting WebSocket to ΔCLOUD...');
+            connectWebSocket();
+        } else {
+            console.log('🔒 HTTPS mode - using PeerJS only (no WebSocket to HTTP server)');
+            console.log('   PeerJS handles all P2P signaling!');
+            updateStatus('מחובר לרשת Δ (P2P)', 'connected');
+        }
         
         // Subscribe to FieldBus events
         fieldBus.subscribe('all', (packet) => {
