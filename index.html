@@ -478,42 +478,15 @@
             </div>
         </div>
         
-        <!-- Room-Based Calling - AUTOMATIC! -->
+        <!-- Call Input -->
         <div class="input-section" id="callInput">
-            <h3>🔥 שיחה אוטומטית - Room System</h3>
-            
-            <!-- Create Room -->
-            <div class="input-group" style="margin-bottom: 15px;">
-                <button class="btn btn-call" onclick="createRoom()" style="width: 100%; background: linear-gradient(135deg, #00d4ff, #7b2cbf);">
-                    🎲 צור חדר חדש
-                </button>
-            </div>
-            
-            <!-- Room Code Display -->
-            <div id="roomCodeDisplay" style="display: none; text-align: center; margin: 15px 0; padding: 20px; background: rgba(0,212,255,0.1); border-radius: 15px; border: 2px solid #00d4ff;">
-                <div style="font-size: 14px; color: #888; margin-bottom: 5px;">קוד החדר שלך:</div>
-                <div id="myRoomCode" style="font-size: 36px; font-weight: bold; color: #00d4ff; letter-spacing: 8px;">----</div>
-                <div style="font-size: 12px; color: #666; margin-top: 10px;">שתף את הקוד עם מי שרוצה להצטרף!</div>
-                <div style="font-size: 11px; color: #ff6b6b; margin-top: 5px;">⏳ ממתין לאורח...</div>
-            </div>
-            
-            <!-- Join Room -->
-            <div style="text-align: center; margin: 15px 0; color: #666;">── או הצטרף לחדר קיים ──</div>
+            <h3>📞 התקשר דרך ΔNetwork</h3>
             <div class="input-group">
-                <input type="text" id="roomCodeInput" placeholder="הכנס קוד חדר (4 ספרות)" maxlength="4" style="text-align: center; font-size: 24px; letter-spacing: 8px;">
-                <button class="btn btn-call" onclick="joinRoom()" style="background: linear-gradient(135deg, #7b2cbf, #00d4ff);">
-                    🚀 הצטרף
+                <input type="text" id="targetDeltaId" placeholder="הכנס ΔID של מי שרוצים להתקשר...">
+                <button class="btn btn-call" onclick="startCall()">
+                    📞 ΔCall
                 </button>
             </div>
-            
-            <!-- Legacy: Direct ID Call (hidden by default) -->
-            <details style="margin-top: 20px;">
-                <summary style="color: #666; cursor: pointer; font-size: 12px;">💡 התקשר ישירות עם ΔID (מתקדם)</summary>
-                <div class="input-group" style="margin-top: 10px;">
-                    <input type="text" id="targetDeltaId" placeholder="הכנס ΔID...">
-                    <button class="btn btn-call" onclick="startCall()">📞 ΔCall</button>
-                </div>
-            </details>
         </div>
         
         <!-- Incoming Call Card -->
@@ -2262,22 +2235,27 @@
                 console.error('   Error type:', err.type);
                 console.error('   Error message:', err.message || err);
                 
+                // 🔥 Handle peer-unavailable - target peer doesn't exist!
+                if (err.type === 'peer-unavailable') {
+                    console.error('❌ TARGET PEER NOT FOUND!');
+                    alert('❌ הצד השני לא נמצא!\n\nוודא ש:\n1. הצד השני פתוח ומחובר\n2. העתקת את ה-ID הנכון\n3. הצד השני לא רענן את הדף');
+                    updateStatus('❌ הצד השני לא נמצא', 'error');
+                    return;
+                }
+                
                 // 🔥 If ID is taken, generate a NEW unique ID and retry!
                 if (err.type === 'unavailable-id') {
                     console.log('🔄 ID is taken - generating new unique ID...');
-                    // Generate new unique ID
                     const timestamp = Date.now().toString(36);
                     const random = Math.random().toString(36).substr(2, 8);
                     myDeltaId = `Δ-web-${timestamp}-${random}`;
                     localStorage.setItem('delta_id', myDeltaId);
                     document.getElementById('myDeltaId').textContent = myDeltaId;
                     
-                    // Destroy old peer and create new one
                     if (peer) {
                         peer.destroy();
                     }
                     
-                    // Retry with new ID after short delay
                     setTimeout(() => {
                         console.log('🔄 Retrying with new ID:', myDeltaId);
                         initPeerJS();
@@ -2893,153 +2871,6 @@
             document.getElementById('callerId').textContent = callerId || '';
             document.getElementById('callerAvatar').textContent = name.charAt(0).toUpperCase();
         }
-        
-        // ============================================================
-        // 🔥💎⚡ ROOM SYSTEM - AUTOMATIC CONNECTIONS! ⚡💎🔥
-        // ============================================================
-        
-        let currentRoomCode = null;
-        let isRoomHost = false;
-        let roomCheckInterval = null;
-        
-        function generateRoomCode() {
-            // Generate 4-digit room code
-            return Math.floor(1000 + Math.random() * 9000).toString();
-        }
-        
-        async function createRoom() {
-            currentRoomCode = generateRoomCode();
-            isRoomHost = true;
-            
-            console.log('╔══════════════════════════════════════════════════════════════════╗');
-            console.log('║ 🎲 CREATING ROOM: ' + currentRoomCode + '                                      ║');
-            console.log('╚══════════════════════════════════════════════════════════════════╝');
-            
-            // Show room code
-            document.getElementById('roomCodeDisplay').style.display = 'block';
-            document.getElementById('myRoomCode').textContent = currentRoomCode;
-            
-            // Destroy old peer and create new one with room-based ID
-            if (peer) {
-                peer.destroy();
-            }
-            
-            // Create predictable PeerJS ID for HOST
-            const hostPeerId = 'room' + currentRoomCode + 'host';
-            console.log('🔥 Host PeerJS ID:', hostPeerId);
-            
-            peer = new Peer(hostPeerId, PEERJS_CONFIG);
-            
-            peer.on('open', (id) => {
-                console.log('✅ Room HOST ready! Waiting for guest...');
-                console.log('   Room code:', currentRoomCode);
-                console.log('   Host ID:', id);
-                updateStatus('🔥 חדר ' + currentRoomCode + ' - ממתין לאורח...', 'connected');
-            });
-            
-            peer.on('call', async (call) => {
-                console.log('📞 Guest joining room!');
-                showIncomingCall('אורח מצטרף לחדר ' + currentRoomCode, 'room-' + currentRoomCode);
-                window.pendingPeerCall = call;
-            });
-            
-            peer.on('connection', (conn) => {
-                console.log('🔥 Guest connected via DataConnection!');
-                peerDataConnection = conn;
-                setupDataConnectionHandlers(conn);
-            });
-            
-            peer.on('error', (err) => {
-                console.error('❌ Room error:', err);
-                if (err.type === 'unavailable-id') {
-                    alert('חדר ' + currentRoomCode + ' כבר תפוס! נסה שוב.');
-                    createRoom(); // Try new code
-                }
-            });
-        }
-        
-        async function joinRoom() {
-            const roomCode = document.getElementById('roomCodeInput').value.trim();
-            if (!roomCode || roomCode.length !== 4) {
-                alert('הכנס קוד חדר בן 4 ספרות');
-                return;
-            }
-            
-            currentRoomCode = roomCode;
-            isRoomHost = false;
-            
-            console.log('╔══════════════════════════════════════════════════════════════════╗');
-            console.log('║ 🚀 JOINING ROOM: ' + currentRoomCode + '                                       ║');
-            console.log('╚══════════════════════════════════════════════════════════════════╝');
-            
-            // Destroy old peer and create new one with room-based ID
-            if (peer) {
-                peer.destroy();
-            }
-            
-            // Create predictable PeerJS ID for GUEST
-            const guestPeerId = 'room' + currentRoomCode + 'guest';
-            const hostPeerId = 'room' + currentRoomCode + 'host';
-            console.log('🔥 Guest PeerJS ID:', guestPeerId);
-            console.log('🔥 Connecting to Host:', hostPeerId);
-            
-            peer = new Peer(guestPeerId, PEERJS_CONFIG);
-            
-            peer.on('open', async (id) => {
-                console.log('✅ Guest ready! Connecting to host...');
-                updateStatus('🔥 מתחבר לחדר ' + currentRoomCode + '...', 'connecting');
-                
-                // Automatically call the host!
-                await startPeerCall(hostPeerId);
-            });
-            
-            peer.on('call', async (call) => {
-                console.log('📞 Incoming call from host!');
-                window.pendingPeerCall = call;
-                // Auto-answer since we're joining their room
-                await answerPeerCall();
-            });
-            
-            peer.on('connection', (conn) => {
-                console.log('🔥 Host connected via DataConnection!');
-                peerDataConnection = conn;
-                setupDataConnectionHandlers(conn);
-            });
-            
-            peer.on('error', (err) => {
-                console.error('❌ Join error:', err);
-                if (err.type === 'peer-unavailable') {
-                    alert('חדר ' + currentRoomCode + ' לא נמצא!\nוודא שהקוד נכון והמארח מחכה.');
-                }
-            });
-        }
-        
-        function setupDataConnectionHandlers(conn) {
-            conn.on('open', () => {
-                console.log('✅ DataConnection OPEN in room!');
-                dataConnectionReady = true;
-            });
-            
-            conn.on('data', (data) => {
-                if (data.type === 'phase_sync') {
-                    handlePhaseSync(data);
-                } else if (data.type === 'video_frame') {
-                    handleVideoFrame(data);
-                } else if (data.type === 'phase') {
-                    handlePhaseData(data);
-                }
-                packetsRx++;
-                updateStats();
-            });
-            
-            conn.on('error', (err) => {
-                console.error('❌ DataConnection error:', err);
-            });
-        }
-        
-        // ============================================================
-        // Legacy startCall (for direct ID calls)
-        // ============================================================
         
         async function startCall() {
             const targetId = document.getElementById('targetDeltaId').value.trim();
