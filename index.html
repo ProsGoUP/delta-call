@@ -2445,7 +2445,7 @@
                 console.log('   Target peer:', peerId);
                 peerDataConnection = peer.connect(peerId, { 
                     reliable: true,
-                    serialization: 'json'  // 🔥 JSON for small phase packets!
+                    serialization: 'binary'  // 🔥 Binary for JPEG frames!
                 });
                 
                 console.log('   peerDataConnection created:', !!peerDataConnection);
