@@ -639,6 +639,145 @@
         let peerDataConnection = null;  // 🔥 For Phase Resonance data!
         let dataConnectionReady = false;  // 🔥 Flag to track if DataConnection is ready
         let usingPeerJSStream = false;  // 🔥 Flag to track if using PeerJS video stream
+        
+        // 🔥💎⚡ ΔSTATION - COMPLETE NODE FOR EACH USER ⚡💎🔥
+        // Each user is a full station that RECEIVES and SENDS!
+        // Based on: PhaseGateway, MeshRouter, SyncLoop, TemporalResonance
+        class ΔStation {
+            constructor(stationId) {
+                this.stationId = stationId;
+                this.phase = 0.0;
+                this.frequency = 500.0;  // Base frequency Hz
+                this.epoch = Date.now();
+                this.isConnected = false;
+                this.lastSync = 0;
+                this.drift = 0;
+                
+                // Connected peers (other stations)
+                this.peers = new Map();  // peerId -> peerPhase
+                
+                // Packet queues
+                this.outgoingQueue = [];
+                this.incomingQueue = [];
+                
+                // Stats
+                this.stats = {
+                    packetsSent: 0,
+                    packetsReceived: 0,
+                    syncCount: 0,
+                    resonanceQuality: 0
+                };
+                
+                console.log(`🔥 ΔStation created: ${stationId}`);
+            }
+            
+            // Get current phase (oscillates at frequency)
+            getPhase() {
+                const elapsed = (Date.now() - this.epoch) / 1000;
+                this.phase = (elapsed * this.frequency) % 1.0;
+                return this.phase;
+            }
+            
+            // Register a peer station
+            registerPeer(peerId, peerPhase = 0) {
+                this.peers.set(peerId, {
+                    phase: peerPhase,
+                    lastSeen: Date.now(),
+                    drift: 0
+                });
+                console.log(`📡 Peer registered: ${peerId}`);
+            }
+            
+            // Sync with peer - align phases
+            syncWithPeer(peerId, peerPhase, peerTime) {
+                const myPhase = this.getPhase();
+                const now = Date.now();
+                
+                // Calculate drift
+                const drift = myPhase - peerPhase;
+                this.drift = drift;
+                
+                // Calculate latency
+                const latency = (now - peerTime) / 2;
+                
+                // Update peer info
+                if (this.peers.has(peerId)) {
+                    const peer = this.peers.get(peerId);
+                    peer.phase = peerPhase;
+                    peer.lastSeen = now;
+                    peer.drift = drift;
+                }
+                
+                // Calculate resonance quality
+                const resonance = this.calculateResonance(this.frequency, this.frequency);
+                this.stats.resonanceQuality = resonance;
+                this.stats.syncCount++;
+                this.lastSync = now;
+                
+                console.log(`🔄 Synced with ${peerId}: drift=${drift.toFixed(6)}, latency=${latency.toFixed(0)}ms, resonance=${resonance.toFixed(3)}`);
+                
+                return { drift, latency, resonance };
+            }
+            
+            // Calculate resonance between two frequencies
+            calculateResonance(freq1, freq2) {
+                if (freq1 === 0 || freq2 === 0) return 0;
+                const ratio = Math.max(freq1, freq2) / Math.min(freq1, freq2);
+                const nearestInteger = Math.round(ratio);
+                const deviation = Math.abs(ratio - nearestInteger);
+                return Math.exp(-deviation / 0.05);
+            }
+            
+            // Queue packet for sending
+            queueOutgoing(peerId, data) {
+                this.outgoingQueue.push({
+                    to: peerId,
+                    data: data,
+                    phase: this.getPhase(),
+                    timestamp: Date.now()
+                });
+                this.stats.packetsSent++;
+            }
+            
+            // Receive packet
+            receivePacket(fromId, data) {
+                this.incomingQueue.push({
+                    from: fromId,
+                    data: data,
+                    receivedAt: Date.now()
+                });
+                this.stats.packetsReceived++;
+                
+                // Sync with sender's phase if available
+                if (data.phase !== undefined && data.timestamp) {
+                    this.syncWithPeer(fromId, data.phase, data.timestamp);
+                }
+            }
+            
+            // Get next outgoing packet
+            getNextOutgoing() {
+                return this.outgoingQueue.shift();
+            }
+            
+            // Get next incoming packet
+            getNextIncoming() {
+                return this.incomingQueue.shift();
+            }
+            
+            getStats() {
+                return {
+                    ...this.stats,
+                    phase: this.getPhase(),
+                    frequency: this.frequency,
+                    drift: this.drift,
+                    peerCount: this.peers.size,
+                    isConnected: this.isConnected
+                };
+            }
+        }
+        
+        // 🔥 Create station for this user
+        let myStation = null;
         const PEERJS_CONFIG = {
             // Use public PeerJS cloud server - FREE and always accessible!
             host: '0.peerjs.com',
@@ -1267,6 +1406,12 @@
             console.log('🆔 Generated fresh ΔID:', myDeltaId);
             document.getElementById('myDeltaId').textContent = myDeltaId;
             
+            // 🔥💎⚡ CREATE ΔSTATION FOR THIS USER ⚡💎🔥
+            // Each user is a FULL STATION that receives AND sends!
+            myStation = new ΔStation(myDeltaId);
+            myStation.isConnected = true;
+            console.log('🔥 ΔStation ready:', myStation.getStats());
+            
             // 🔥 Initialize PeerJS with public signaling - NO PORT FORWARD!
             initPeerJS();
             
@@ -1725,11 +1870,19 @@
         
         // 🔥 Universal send function - works with WebSocket OR PeerJS DataConnection!
         function sendResonanceData(data) {
+            // 🔥 Add station phase and timestamp to ALL packets!
+            if (myStation) {
+                data.stationPhase = myStation.getPhase();
+                data.stationTime = Date.now();
+                data.stationId = myStation.stationId;
+            }
+            
             // Try PeerJS DataConnection first (P2P mode)
             if (dataConnectionReady && peerDataConnection) {
                 try {
                     peerDataConnection.send(data);
                     packetsTx++;
+                    if (myStation) myStation.stats.packetsSent++;
                     updateStats();
                     return true;
                 } catch (e) {
@@ -1740,6 +1893,7 @@
             if (webSocket && webSocket.readyState === WebSocket.OPEN) {
                 webSocket.send(JSON.stringify(data));
                 packetsTx++;
+                if (myStation) myStation.stats.packetsSent++;
                 updateStats();
                 return true;
             }
@@ -1999,9 +2153,19 @@
                 return;
             }
             
+            // 🔥 SYNC WITH SENDER'S STATION!
+            if (myStation && data.stationId && data.stationPhase !== undefined && data.stationTime) {
+                myStation.registerPeer(data.stationId, data.stationPhase);
+                myStation.syncWithPeer(data.stationId, data.stationPhase, data.stationTime);
+                myStation.stats.packetsReceived++;
+            }
+            
             framesReceived++;
             if (framesReceived % 30 === 1) {
                 console.log(`📥 Received frame ${framesReceived}, size: ${imageData.length} bytes`);
+                if (myStation) {
+                    console.log(`📡 Station stats: resonance=${myStation.stats.resonanceQuality.toFixed(3)}, drift=${myStation.drift.toFixed(6)}`);
+                }
             }
             
             // Track remote phase for synchronization
