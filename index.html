@@ -1001,9 +1001,10 @@
             const call = window.pendingPeerCall;
             console.log('📞 Answering P2P call from:', call.peer);
             
-            // 🔥 PHASE RESONANCE MODE: Don't use PeerJS video stream!
-            // We'll use our own Phase Resonance data channel instead!
-            usingPeerJSStream = false;  // ← תיקון! Phase Resonance במקום WebRTC video
+            // 🔥 CRITICAL: Mark that we're using PeerJS stream IMMEDIATELY!
+            // This prevents startVideoReconstruction from overriding the remote video
+            usingPeerJSStream = true;
+            console.log('🔥 usingPeerJSStream = true (ANSWERER)');
             
             // Get local media
             try {
@@ -1026,9 +1027,6 @@
                 call.on('stream', (remoteStream) => {
                     console.log('🎥🎥🎥 GOT REMOTE STREAM FROM CALLER! 🎥🎥🎥');
                     console.log('   Tracks:', remoteStream.getTracks().map(t => t.kind + ':' + t.enabled + ':' + t.readyState));
-                    
-                    // 🔥 CRITICAL: Mark that we're using PeerJS stream!
-                    usingPeerJSStream = true;
                     
                     const remoteVideo = document.getElementById('remoteVideo');
                     remoteVideo.srcObject = remoteStream;
@@ -1124,12 +1122,14 @@
                 
                 console.log('📞 Call created, waiting for stream...');
                 
+                // 🔥 CRITICAL: Mark that we're using PeerJS stream IMMEDIATELY!
+                // This prevents startVideoReconstruction from overriding the remote video
+                usingPeerJSStream = true;
+                console.log('🔥 usingPeerJSStream = true (CALLER)');
+                
                 call.on('stream', (remoteStream) => {
                     console.log('🎥🎥🎥 GOT REMOTE STREAM! 🎥🎥🎥');
                     console.log('   Tracks:', remoteStream.getTracks().map(t => t.kind + ':' + t.enabled + ':' + t.readyState));
-                    
-                    // 🔥 CRITICAL: Mark that we're using PeerJS stream!
-                    usingPeerJSStream = true;
                     
                     const remoteVideo = document.getElementById('remoteVideo');
                     remoteVideo.srcObject = remoteStream;
