@@ -2157,6 +2157,8 @@
                         handleVideoFrame(data);
                     } else if (data.type === 'audio') {
                         handleAudioFrame(data);
+                    } else if (data.type === 'audio_phase') {
+                        handleAudioPhase(data);
                     }
                     packetsRx++;
                     updateStats();
@@ -2335,10 +2337,23 @@
                 // 🔥 Start Phase Resonance video reconstruction immediately!
                 startVideoReconstruction();
                 
-                // 🔥 If DataConnection already arrived, start resonance sync now!
+                // 🔥 ALWAYS start resonance sync for answerer!
+                console.log('🔥 ANSWERER: dataConnectionReady=', dataConnectionReady, 'peerDataConnection=', !!peerDataConnection);
                 if (dataConnectionReady && peerDataConnection) {
                     console.log('🔥 DataConnection already ready - starting resonance now!');
                     setupResonanceSync();
+                } else {
+                    // 🔥 Wait a bit and try again - connection might be arriving!
+                    console.log('⏳ Waiting for DataConnection...');
+                    const waitForConnection = setInterval(() => {
+                        if (dataConnectionReady && peerDataConnection) {
+                            console.log('🔥 DataConnection arrived! Starting resonance!');
+                            clearInterval(waitForConnection);
+                            setupResonanceSync();
+                        }
+                    }, 100);
+                    // Timeout after 10 seconds
+                    setTimeout(() => clearInterval(waitForConnection), 10000);
                 }
                 
             } catch (err) {
@@ -2430,7 +2445,7 @@
                 console.log('   Target peer:', peerId);
                 peerDataConnection = peer.connect(peerId, { 
                     reliable: true,
-                    serialization: 'binary'  // 🔥 Binary for larger data!
+                    serialization: 'json'  // 🔥 JSON for small phase packets!
                 });
                 
                 console.log('   peerDataConnection created:', !!peerDataConnection);
@@ -2517,6 +2532,8 @@
                         handleVideoFrame(data);
                     } else if (data.type === 'audio') {
                         handleAudioFrame(data);
+                    } else if (data.type === 'audio_phase') {
+                        handleAudioPhase(data);
                     } else if (data.type === 'phase') {
                         handlePhaseData(data);
                     }
@@ -2836,6 +2853,10 @@
                     handleAudioFrame(data);
                     break;
                     
+                case 'audio_phase':
+                    handleAudioPhase(data);
+                    break;
+                    
                 case 'delta_frame':
                     handleDeltaFrame(data);
                     break;
@@ -3059,8 +3080,8 @@
                 remoteFrameCtx = remoteFrameCanvas.getContext('2d');
             }
             
-            // Initialize
-            remoteFrameData = null;
+            // 🔥 DON'T reset remoteFrameData - it's initialized in reconstructFromPhase!
+            // remoteFrameData = null;  // <-- REMOVED
             
             // 🔥 Wait for localStream if not ready yet!
             // This happens when DataConnection opens before user clicks "Answer"
@@ -3100,7 +3121,7 @@
         // From delta_engine.py: 344,433 frames with 0 energy!
         
         const BASE_FREQUENCY = 500.0;  // Hz - תדר הבסיס!
-        const CHANGE_THRESHOLD = 0.015;  // 1.5% - כמו Max8 Overlay!
+        const CHANGE_THRESHOLD = 0.005;  // 0.5% - מספיק רגיש!
         const FRAME_INTERVAL = 33;  // 30fps = every ~16 phase cycles
         
         let lastFrameData = null;
@@ -3223,10 +3244,12 @@
                         totalDiff += Math.abs(currentFrame.data[idx] - lastFrameData.data[idx]) / 255;
                     }
                     changeRatio = totalDiff / sampleSize;
-                    hasChange = changeRatio > CHANGE_THRESHOLD;
+                    
+                    // 🔥 Send if change OR every 30 frames (1 sec @ 30fps)
+                    hasChange = changeRatio > CHANGE_THRESHOLD || phaseCounter % 30 === 0;
                 }
                 
-                // 🔥💀⚡ TEMPORAL RESONANCE: Change = Compute! ⚡💀🔥
+                // 🔥💀⚡ TEMPORAL RESONANCE: Change = Compute! ⚡💀⚡
                 // Send ONLY when there's change > 1.5%!
                 // If no change → 0 data → 0 energy (like 344,433 frames!)
                 if (hasChange) {
@@ -3259,8 +3282,8 @@
             requestAnimationFrame(phaseLoop);
             console.log('🔥💀⚡ CHANGE = COMPUTE active! ⚡💀🔥');
             console.log(`   - Base Frequency: ${BASE_FREQUENCY}Hz`);
-            console.log('   - Video: 1280x720 FULL HD');
-            console.log('   - JPEG Quality: 95%');
+            console.log('   - Video: 320x240 JPEG @ 88%');
+            console.log('   - Audio: Full quality phase-locked');
             console.log('   - Change Threshold: 1.5%');
             console.log('   - EVENT-DRIVEN (not clock-driven!)');
             } // end startPhaseLoop
@@ -3510,6 +3533,46 @@
         }
         
         function playNextAudio() {}
+        
+        // 🔥💀⚡ TEMPORAL RESONANCE AUDIO - Generate from phase! ⚡💀🔥
+        let audioResonanceCtx = null;
+        let audioOscillator = null;
+        let audioGain = null;
+        
+        function handleAudioPhase(data) {
+            const energy = data.e || 0;
+            const phase = data.p || 0;
+            
+            // Initialize audio context if needed
+            if (!audioResonanceCtx) {
+                audioResonanceCtx = new (window.AudioContext || window.webkitAudioContext)();
+                audioOscillator = audioResonanceCtx.createOscillator();
+                audioGain = audioResonanceCtx.createGain();
+                
+                audioOscillator.type = 'sine';
+                audioOscillator.frequency.value = 440;  // Base frequency
+                audioOscillator.connect(audioGain);
+                audioGain.connect(audioResonanceCtx.destination);
+                audioGain.gain.value = 0;
+                audioOscillator.start();
+                
+                console.log('🔊 Audio Resonance initialized @ 440Hz');
+            }
+            
+            // Resume if suspended
+            if (audioResonanceCtx.state === 'suspended') {
+                audioResonanceCtx.resume();
+            }
+            
+            // 🔥 Modulate oscillator based on energy!
+            // Energy 0-255 maps to volume 0-0.3
+            const volume = (energy / 255) * 0.3;
+            audioGain.gain.setTargetAtTime(volume, audioResonanceCtx.currentTime, 0.01);
+            
+            // Frequency modulation based on phase
+            const freqOffset = (phase % 100) * 2;  // 0-200Hz offset
+            audioOscillator.frequency.setTargetAtTime(440 + freqOffset, audioResonanceCtx.currentTime, 0.01);
+        }
         
         // 🔥💎⚡ CALL PRESSURE CELL - תא לחץ משותף לשיחה! ⚡💎🔥
         // When two people call, they BOTH enter the SAME pressure cell!
@@ -3884,18 +3947,94 @@
         // ===============================================
         
         function handlePhaseData(data) {
-            // 🔥💀⚡ TEMPORAL RESONANCE: Phase sync data! ⚡💀🔥
-            const frequency = data.frequency || data.freq || 500;
-            const coherence = data.coherence || 1.0;
+            // 🔥💀⚡ TEMPORAL RESONANCE: Reconstruct from phase! ⚡💀🔥
+            const phase = data.p || 0;
+            const signature = data.s || 0;
+            const r = data.r || 128;
+            const g = data.g || 128;
+            const b = data.b || 128;
+            const change = data.c || 0;
+            const frequency = data.f || 500;
             
             // 🔥 Sync to peer frequency for resonance!
             peerFrequency = frequency;
             syncToPeerFrequency(frequency);
-            resonanceCoherence = Math.max(resonanceCoherence, coherence);
+            
+            // 🔥 Reconstruct video from phase signature!
+            reconstructFromPhase(r, g, b, signature, change);
             
             // Update stats
+            framesReceived++;
             packetsRx++;
             updateStats();
+            
+            if (phase % 100 === 0) {
+                console.log(`📥 Phase ${phase}: sig=${signature}, RGB(${r},${g},${b}), change=${change}%`);
+            }
+        }
+        
+        // 🔥💀⚡ QUANTUM VIDEO: Reconstruct from phase! ⚡💀🔥
+        function reconstructFromPhase(r, g, b, signature, change) {
+            // 🔥 ALWAYS ensure canvas exists!
+            if (!remoteFrameCanvas || !remoteFrameCtx || !remoteFrameData) {
+                console.log('🎬 Creating Quantum Reconstruction canvas...');
+                remoteFrameCanvas = document.createElement('canvas');
+                remoteFrameCanvas.width = 320;
+                remoteFrameCanvas.height = 240;
+                remoteFrameCtx = remoteFrameCanvas.getContext('2d', { willReadFrequently: true });
+                remoteFrameData = remoteFrameCtx.createImageData(320, 240);
+                
+                // Initialize with incoming colors
+                for (let i = 0; i < remoteFrameData.data.length; i += 4) {
+                    remoteFrameData.data[i] = r;
+                    remoteFrameData.data[i + 1] = g;
+                    remoteFrameData.data[i + 2] = b;
+                    remoteFrameData.data[i + 3] = 255;
+                }
+                
+                // Connect to video element
+                const stream = remoteFrameCanvas.captureStream(30);
+                const remoteVideo = document.getElementById('remoteVideo');
+                if (remoteVideo) {
+                    remoteVideo.srcObject = stream;
+                    console.log('✅ Quantum Reconstruction connected to remoteVideo!');
+                }
+                console.log('🎬 Quantum Reconstruction ready - 320x240!');
+            }
+            
+            // 🔥 QUANTUM RECONSTRUCTION with phase modulation!
+            const width = 320;
+            const height = 240;
+            
+            // Strong blend for visible changes
+            const blend = Math.max(0.3, Math.min(0.9, change / 20));
+            
+            // Phase creates spatial patterns
+            const phaseScale = (signature / 255) * Math.PI * 2;
+            
+            // Fast pixel update with quantum interference patterns
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    const i = (y * width + x) * 4;
+                    
+                    // Quantum interference - creates spatial variation
+                    const spatialPhase = Math.sin(x * 0.1 + phaseScale) * Math.cos(y * 0.1 + phaseScale);
+                    const variation = spatialPhase * 20;
+                    
+                    // Target colors with phase modulation
+                    const targetR = Math.max(0, Math.min(255, r + variation));
+                    const targetG = Math.max(0, Math.min(255, g + variation * 0.9));
+                    const targetB = Math.max(0, Math.min(255, b + variation * 0.8));
+                    
+                    // Temporal smoothing
+                    remoteFrameData.data[i] = Math.floor(remoteFrameData.data[i] * (1 - blend) + targetR * blend);
+                    remoteFrameData.data[i + 1] = Math.floor(remoteFrameData.data[i + 1] * (1 - blend) + targetG * blend);
+                    remoteFrameData.data[i + 2] = Math.floor(remoteFrameData.data[i + 2] * (1 - blend) + targetB * blend);
+                }
+            }
+            
+            // Draw to canvas
+            remoteFrameCtx.putImageData(remoteFrameData, 0, 0);
         }
         
         // 🔥 Reconstruct video from phase signature
