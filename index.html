@@ -3244,7 +3244,9 @@
                         totalDiff += Math.abs(currentFrame.data[idx] - lastFrameData.data[idx]) / 255;
                     }
                     changeRatio = totalDiff / sampleSize;
-                    hasChange = changeRatio > CHANGE_THRESHOLD;
+                    
+                    // 🔥 Send if change OR every 30 frames (1 sec @ 30fps)
+                    hasChange = changeRatio > CHANGE_THRESHOLD || phaseCounter % 30 === 0;
                 }
                 
                 // 🔥💀⚡ TEMPORAL RESONANCE: Change = Compute! ⚡💀🔥
