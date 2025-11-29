@@ -2337,10 +2337,23 @@
                 // 🔥 Start Phase Resonance video reconstruction immediately!
                 startVideoReconstruction();
                 
-                // 🔥 If DataConnection already arrived, start resonance sync now!
+                // 🔥 ALWAYS start resonance sync for answerer!
+                console.log('🔥 ANSWERER: dataConnectionReady=', dataConnectionReady, 'peerDataConnection=', !!peerDataConnection);
                 if (dataConnectionReady && peerDataConnection) {
                     console.log('🔥 DataConnection already ready - starting resonance now!');
                     setupResonanceSync();
+                } else {
+                    // 🔥 Wait a bit and try again - connection might be arriving!
+                    console.log('⏳ Waiting for DataConnection...');
+                    const waitForConnection = setInterval(() => {
+                        if (dataConnectionReady && peerDataConnection) {
+                            console.log('🔥 DataConnection arrived! Starting resonance!');
+                            clearInterval(waitForConnection);
+                            setupResonanceSync();
+                        }
+                    }, 100);
+                    // Timeout after 10 seconds
+                    setTimeout(() => clearInterval(waitForConnection), 10000);
                 }
                 
             } catch (err) {
